@@ -7,3 +7,4 @@ if Testing then
     Chat:log("Volume: " .. tostring(volume))
     Chat:log("Notify Player: " .. tostring(notifyPlayer))
 end
+--Test
