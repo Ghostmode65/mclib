@@ -1,0 +1,5 @@
+if settings.Testing then
+    Chat:log("Testing mode enabled")
+    Chat:log("Volume: " .. tostring(settings.volume))
+    Chat:log("Notify Player: " .. tostring(settings.notifyPlayer))
+end
