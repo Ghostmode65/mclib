@@ -16,7 +16,7 @@ local writeConfig = [[
         {
           "triggerType": "KEY_RISING",
           "event": "key.keyboard.keypad.6",
-          "scriptFile": "injecterBeta.lua",
+          "scriptFile": "commandinjector.lua",
           "enabled": true,
           "joined": false
         }
@@ -140,7 +140,7 @@ local writeConfig = [[
     "showRunningServices": false,
     "serviceAutoReload": false
   },
- "js": {
+  "js": {
     "extraGraalOptions": {}
   },
   "lua": {
@@ -159,4 +159,5 @@ local MacroFile = JsMacros:getConfig().configFolder:getPath() .. "/" .. FileName
     Client:waitTick('100')
   FS:open(MacroFile):write(writeConfig)
   Client:exitGamePeacefully()
+  else Chat:log(MacroFile)
   end
