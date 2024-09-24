@@ -16,7 +16,7 @@ local writeConfig = [[
         {
           "triggerType": "KEY_RISING",
           "event": "key.keyboard.keypad.6",
-          "scriptFile": "commandinjector.lua",
+          "scriptFile": "FabricRefresh.lua",
           "enabled": true,
           "joined": false
         }
