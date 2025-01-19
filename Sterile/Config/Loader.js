@@ -14,8 +14,8 @@ const writeConfig = `
       "default": [
         {
           "triggerType": "KEY_RISING",
-          "event": "key.keyboard.keypad.6",
-          "scriptFile": "FabricRefresh.lua",
+          "event": "key.keyboard.keypad.1",
+          "scriptFile": "FabricRefresher.lua",
           "enabled": true,
           "joined": false
         }
