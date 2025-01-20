@@ -19,33 +19,32 @@ try {
 
 Setup.Config = () => {
     const url = "https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Config/Loader.js"; 
-    const file = Request.get(url).text();
+    const response = Request.get(url);
     if (response.responseCode === 200) {
-        return eval(file);
+        return eval(Request.get(url).text());
     } else {
-        throw new Error(`Failed to get loader`);
+        throw new Error(`Failed to initialize files`);
     }
 }
 
 
-Install.Loader = () => {
+Setup.Loader = () => {
     const url = "https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Installer/Loader.js";
     const response = Request.get(url);
-
     if (response.responseCode === 200) {
-        return eval(file);
+        return eval(Request.get(url).text());
     } else {
         throw new Error(`Failed to get loader`);
     }
 };
 
 Setup.lua();
-Setup.Loader();
 
 try {
     JsMacros.runScript('lua', 'Chat:actionbar("§dLua Extension Loaded")');
-Chat.actionbar("§dGoing to Restart game soon, relaunch to after exit");
-//Install loader file
+    Client.waitTick(10);
+Setup.Loader();
+Chat.actionbar("§dGoing to Restart game soon, relaunch after exit");
 Setup.Config();
 
 } catch (error) {Chat.log("§dError loading lua" )};

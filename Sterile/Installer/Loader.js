@@ -24,7 +24,7 @@ Install.deleteOldFiles = () => {
 };
 
 Install.addLoader = () => {
-        const loaderFile = FS.open(loaderText).write(Setup.Loader());
+        const loaderFile = FS.open(loaderText).write(Install.Loader());
         Chat.actionbar("Added " + loaderText);
 };
 
