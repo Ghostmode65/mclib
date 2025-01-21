@@ -1,0 +1,3 @@
+return function(showImage)
+    showImage()
+end

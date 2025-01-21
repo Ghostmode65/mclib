@@ -1,0 +1,8 @@
+local FunctionTable = {}
+
+
+local function FunctionTable.test()
+   Chat:log('Test')
+end
+
+return FunctionTable 
