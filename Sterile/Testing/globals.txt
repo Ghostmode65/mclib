@@ -1,2 +1,4 @@
 Chat:log('testing')
-Sys.extended.TestLoad()
+
+
+return Sys.extended.TestLoad()
