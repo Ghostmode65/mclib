@@ -1,1 +1,2 @@
+Chat:log('testing')
 Sys.extended.TestLoad()
