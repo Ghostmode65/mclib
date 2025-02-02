@@ -51,3 +51,5 @@ update = function(table)
     end end,
 
 }end
+
+return settings 
