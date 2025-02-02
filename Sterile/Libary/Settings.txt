@@ -1,0 +1,53 @@
+local settings = {}
+settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
+
+settings.genarate = function(fileName,table)
+    local file = settings.Folder..fileName..".lua"
+    FS:createFile(settings.Folder, file, true)
+    Client:waitTick()
+    FS:open(file):write("return "..table)
+end
+
+settings.new = function(fileName, Version,table)
+    if FS:exists(settings.Folder..fileName..".lua") then return false end
+    settings.genarate(fileName,[[{
+['Info'] = {['Version'] = ]]..tostring(Version)..[[},
+['Settings'] = ]]..table)
+end
+
+settings.get = Secure("Settings Loader", function(fileName)
+    local file = settings.Folder..fileName..".lua"
+    if not FS:exists(file) then return false end
+    return load(FS:open(file):read())()
+end)
+
+settings.manger = function(fileName)
+    local file = settings.Folder..fileName..".lua"
+    if not FS:exists(file) then return Falsify('Settings not found') end
+    local plugin = settings.get()
+
+return {
+add = function(table)
+    local newer, shouldUpdate = {}, false
+    for key, setting in pairs(plugin) do
+        if not plugin.Settings[key] then
+            table.insert(newer, setting)
+            shouldUpdate = true
+        end end
+    if shouldUpdate then settings.genarate(fileName,newer) end
+end,
+
+refresh = function(table)
+    for key, value in pairs(table) do
+        if value ~= plugin.Settings[key].value then
+            plugin.Settings[key] = value
+        end end
+    settings.genarate(fileName,plugin)
+    end,
+
+update = function(table)
+    if table.Info.Version ~= plugin.Info.Version then
+        settings.genarate(fileName,table)
+    end end,
+
+}end
