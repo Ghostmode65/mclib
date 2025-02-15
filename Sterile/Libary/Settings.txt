@@ -1,55 +1,182 @@
-local settings = {}
-settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
+Sys = {admin = true,skipload = true}
+if not Sys.admin then Sys.skipload = false end
 
-settings.genarate = function(fileName,table)
-    local file = settings.Folder..fileName..".lua"
-    FS:createFile(settings.Folder, file, true)
+Falsify = function(error)
+    if error and Sys.admin then Chat:log('§cDebug Log:§f '..error) end
+     return setmetatable({}, {
+         __index = function() return nil end, --Any property returns false
+         __call = function() return nil end  --Any method call returns false
+     })
+ end
+ 
+ 
+ Secure = function(error,func)
+     return function(...)
+         local status, response = pcall(func, ...)
+         if not status then Chat:log('§4Critcal Error: '..error) return Falsify() end
+         return response
+     end
+ end
+
+
+Sys.tableToString = function(tbl, indent)
+    indent = indent or 0
+    local spacing = string.rep(" ", indent)
+    local toString = spacing .. "{\n"
+
+    for key, value in pairs(tbl) do
+        local formattedKey = string.format("%s['%s'] = ", spacing .. "    ", tostring(key))
+
+        if type(value) == "table" then
+            toString = toString .. formattedKey .. "\n" .. Sys.tableToString(value, indent + 4) .. ",\n"
+        elseif type(value) ~= "string" then
+            toString = toString .. formattedKey .."'" .. tostring(value).."'" .. ",\n"
+        else
+            toString = toString .. formattedKey .. "'" .. tostring(value) .. "',\n"
+        end
+    end
+
+    toString = toString .. spacing .. "}"
+    return toString
+end
+
+Sys.printTable = function(tbl, depth)
+    if depth == nil then Chat:log('§d~~~~~~~~~~') end
+    if not depth or type(depth) ~= "number" then depth = 0 end
+    local indent = string.rep("    ", depth)
+
+    for key, value in pairs(tbl) do
+        if type(value) == "table" then
+            Chat:log(indent .. "§e[" .. tostring(key) or "" .. "] = {")
+            Sys.printTable(value, depth + 1)
+            Chat:log(indent .. "§e},")
+        elseif type(value) ~= "function" then
+            Chat:log(indent .. tostring(key) .. ": " .. tostring(value) .. ",")
+        end
+    end
+
+    if depth == 0 then Chat:log('§d~~~~~~~~~~') end
+end
+
+local Settings = {}
+Settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
+
+Settings.genarate = function(fileName,table)
+    local file = Settings.Folder..fileName..".lua"
+    FS:createFile(Settings.Folder, file, true)
     Client:waitTick()
     FS:open(file):write("return "..table)
 end
 
-settings.new = function(fileName, Version,table)
-    if FS:exists(settings.Folder..fileName..".lua") then return false end
-    settings.genarate(fileName,[[{
+Settings.new = function(fileName,Version,table)
+    if FS:exists(Settings.Folder..fileName..".lua") then return false end
+    Settings.genarate(fileName,[[{
 ['Info'] = {['Version'] = ]]..tostring(Version)..[[},
-['Settings'] = ]]..table)
+['Settings'] = ]]..Sys.tableToString(table) .. [[}]])
 end
 
-settings.get = Secure("Settings Loader", function(fileName)
-    local file = settings.Folder..fileName..".lua"
+
+Settings.load = Secure("Settings Loader",function(fileName)
+    local file = Settings.Folder..fileName..".lua"
     if not FS:exists(file) then return false end
-    return load(FS:open(file):read())()
+
+    local script = load(FS:open(file):read())
+    if script then return script() end
 end)
 
-settings.manger = function(fileName)
-    local file = settings.Folder..fileName..".lua"
+Settings.get = function(fileName)
+local mainTable = Settings.load(fileName)
+if mainTable then return mainTable["Settings"] else return nil end
+end
+
+Settings.create = function(key,parent)
+local button = function(Table)
+    local width, height = Table.width, Table.height
+    local type, value, text, func = 'button',Table.value, Table.text, Table.func
+    parent[key] ={Render = {type = type,width = width,height = height,text = text,func = function() func() end},value = value}
+    
+    end
+    
+local slider = function(Table)
+    local width, height = Table.width, Table.height
+    local type, value, text, func = 'slider',Table.value, Table.text, Table.func
+    parent[key] ={Render = {type = type,width = width,height = height,text = text,func = func},value = value}
+    
+    return nil
+    end
+    
+local checkbox = function(Table) -- x,y,width,height,text,value,align,element, func
+    local width, height = Table.width, Table.height
+    local type, value, text, func = 'checkbox',Table.value, Table.text, Table.func
+     parent[key] ={Render = {type = type,width = width,height = height,text = text,func = function() func() end},value = value}
+    
+    end
+    
+local cyclingButton = function(Table) --x,y,width,height,prefix,table1,table2,align,element,func
+        local width, height = Table.width, Table.height
+        local type, value,prefix, table1, table2, func = 'cyclingButton',Table.value,Table.prefix, Table.Table,Table.Table2, Table.func
+        parent[key] ={Render = {type = type,width = width,height = height,table = table1,table2 = table2,
+        func = function(str) local str = str:match(": (.+)") func(str) end},value = value} --Colors: Blue (Takes the text after :)
+        
+    end
+
+local textInput = function(Table)
+    local width, height = Table.width, Table.height
+    local type, value, text, suggestion, maxCharacters, func = 'textInput',Table.value, Table.text, Table.suggestion, Table.maxCharacters, Table.func
+    parent[key] ={Render = {type,width = width,height = height,text = text,suggestion = suggestion,maxCharacters = maxCharacters,
+        func = function(str) func(str) end}, value = value}
+        
+    end
+return {
+    button = button,
+    slider = slider,
+    checkbox = checkbox,
+    cyclingButton = cyclingButton,
+    textInput = textInput
+}
+end
+
+
+Settings.manger = function(fileName)
+local file = Settings.Folder..fileName..".lua"
     if not FS:exists(file) then return Falsify('Settings not found') end
-    local plugin = settings.get()
+local plugin = Settings.load()
 
 return {
-add = function(table)
+add = function(Table) --Wont Work Like this
     local newer, shouldUpdate = {}, false
     for key, setting in pairs(plugin) do
         if not plugin.Settings[key] then
             table.insert(newer, setting)
             shouldUpdate = true
         end end
-    if shouldUpdate then settings.genarate(fileName,newer) end
+    if shouldUpdate then Settings.genarate(fileName,newer) end
 end,
 
-refresh = function(table)
-    for key, value in pairs(table) do
+refresh = function(Table)
+    for key, value in pairs(Table) do
         if value ~= plugin.Settings[key].value then
             plugin.Settings[key] = value
         end end
-    settings.genarate(fileName,plugin)
+    Settings.genarate(fileName,plugin)
     end,
 
-update = function(table)
-    if table.Info.Version ~= plugin.Info.Version then
-        settings.genarate(fileName,table)
+update = function(Table)
+    if Table.Info.Version > plugin.Info.Version then
+        Settings.genarate(fileName,table)
     end end,
 
 }end
 
-return settings 
+return Settings
+
+
+
+
+
+
+
+
+
+
+
