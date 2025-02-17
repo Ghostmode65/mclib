@@ -1,3 +1,4 @@
+
 local Settings = {}
 Settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
 
@@ -33,7 +34,7 @@ Settings.create = function(key,parent)
 local button = function(Table)
     local width, height = Table.width, Table.height
     local type, value, text, func = 'button',Table.value, Table.text, Table.func
-    parent[key] ={Render = {type = type,width = width,height = height,text = text,func = function() func() end},value = value}
+    parent[key] ={Render = {type = type,width = width,height = height,text = text,func = func},value = value}
     
     end
     
@@ -48,7 +49,7 @@ local slider = function(Table)
 local checkbox = function(Table) -- x,y,width,height,text,value,align,element, func
     local width, height = Table.width, Table.height
     local type, value, text, func = 'checkbox',Table.value, Table.text, Table.func
-     parent[key] ={Render = {type = type,width = width,height = height,text = text,func = function() func() end},value = value}
+     parent[key] ={Render = {type = type,width = width,height = height,text = text,func = func},value = value}
     
     end
     
@@ -56,7 +57,7 @@ local cyclingButton = function(Table) --x,y,width,height,prefix,table1,table2,al
         local width, height = Table.width, Table.height
         local type, value,prefix, table1, table2, func = 'cyclingButton',Table.value,Table.prefix, Table.Table,Table.Table2, Table.func
         parent[key] ={Render = {type = type,width = width,height = height,table = table1,table2 = table2,
-        func = function(str) local str = str:match(": (.+)") func(str) end},value = value} --Colors: Blue (Takes the text after :)
+        func = func},value = value} --Colors: Blue (Takes the text after :)
         
     end
 
@@ -64,7 +65,7 @@ local textInput = function(Table)
     local width, height = Table.width, Table.height
     local type, value, text, suggestion, maxCharacters, func = 'textInput',Table.value, Table.text, Table.suggestion, Table.maxCharacters, Table.func
     parent[key] ={Render = {type,width = width,height = height,text = text,suggestion = suggestion,maxCharacters = maxCharacters,
-        func = function(str) func(str) end}, value = value}
+        func = func}, value = value}
         
     end
 return {
@@ -108,19 +109,5 @@ update = function(Table)
 
 }end
 
+
 return Settings
-
---Todo:
---Remove Sys Table
---Debug Funcions
-    --> Override save file
-
-
-
-
-
-
-
-
-
-
