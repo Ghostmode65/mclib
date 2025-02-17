@@ -1,4 +1,3 @@
-
 local Settings = {}
 Settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
 
@@ -48,7 +47,7 @@ local slider = function(Table)
     
 local checkbox = function(Table) -- x,y,width,height,text,value,align,element, func
     local width, height = Table.width, Table.height
-    local type, value, text, func = 'checkbox',Table.value, Table.text, Table.func
+    local type, value, text, func = 'checkBox',Table.value, Table.text, Table.func
      parent[key] ={Render = {type = type,width = width,height = height,text = text,func = func},value = value}
     
     end
@@ -64,7 +63,7 @@ local cyclingButton = function(Table) --x,y,width,height,prefix,table1,table2,al
 local textInput = function(Table)
     local width, height = Table.width, Table.height
     local type, value, text, suggestion, maxCharacters, func = 'textInput',Table.value, Table.text, Table.suggestion, Table.maxCharacters, Table.func
-    parent[key] ={Render = {type,width = width,height = height,text = text,suggestion = suggestion,maxCharacters = maxCharacters,
+    parent[key] ={Render = {type = type,width = width,height = height,text = text,suggestion = suggestion,maxCharacters = maxCharacters,
         func = func}, value = value}
         
     end
@@ -109,5 +108,15 @@ update = function(Table)
 
 }end
 
-
 return Settings
+
+
+
+
+
+
+
+
+
+
+
