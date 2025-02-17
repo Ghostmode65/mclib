@@ -1,3 +1,4 @@
+
 local Settings = {}
 Settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
 
@@ -15,6 +16,16 @@ Settings.new = function(fileName,Version,table)
 ['Settings'] = ]]..Sys.tableToString(table) .. [[}]])
 end
 
+Settings.overWrite = function(fileName,Version,table)
+    if not FS:exists(Settings.Folder..fileName..".lua") then  
+    Settings.genarate(fileName,[[{
+        ['Info'] = {['Version'] = ]]..tostring(Version)..[[},
+        ['Settings'] = ]]..Sys.tableToString(table) .. [[}]])
+    else
+        FS:open(Settings.Folder..fileName..".lua"):write("return "..[[{
+        ['Info'] = {['Version'] = ]]..tostring(Version)..[[},
+        ['Settings'] = ]]..Sys.tableToString(table) .. [[}]])
+end end
 
 Settings.load = Secure("Settings Loader",function(fileName)
     local file = Settings.Folder..fileName..".lua"
@@ -54,8 +65,8 @@ local checkbox = function(Table) -- x,y,width,height,text,value,align,element, f
     
 local cyclingButton = function(Table) --x,y,width,height,prefix,table1,table2,align,element,func
         local width, height = Table.width, Table.height
-        local type, value,prefix, table1, table2, func = 'cyclingButton',Table.value,Table.prefix, Table.Table,Table.Table2, Table.func
-        parent[key] ={Render = {type = type,width = width,height = height,table = table1,table2 = table2,
+        local type, value,prefix, options, options2, func = 'cyclingButton',Table.value,Table.prefix, Table.options,Table.options2, Table.func
+        parent[key] ={Render = {type = type,width = width,height = height,options = options,options2 = options2,
         func = func},value = value} --Colors: Blue (Takes the text after :)
         
     end
@@ -82,7 +93,7 @@ local file = Settings.Folder..fileName..".lua"
     if not FS:exists(file) then return Falsify('Settings not found') end
 local plugin = Settings.load()
 
-return {
+local rework = {
 add = function(Table) --Wont Work Like this
     local newer, shouldUpdate = {}, false
     for key, setting in pairs(plugin) do
@@ -93,20 +104,28 @@ add = function(Table) --Wont Work Like this
     if shouldUpdate then Settings.genarate(fileName,newer) end
 end,
 
-refresh = function(Table)
-    for key, value in pairs(Table) do
-        if value ~= plugin.Settings[key].value then
-            plugin.Settings[key] = value
-        end end
-    Settings.genarate(fileName,plugin)
-    end,
+
 
 update = function(Table)
     if Table.Info.Version > plugin.Info.Version then
         Settings.genarate(fileName,table)
     end end,
+}
+
+local save = function(Table)
+for key, value in pairs(Table) do
+        plugin.Settings[key] = value
+    end
+Settings.overWrite(fileName,plugin.Info.Version,plugin.Settings)
+end
+
+
+return{
+
+save = save,
 
 }end
+
 
 return Settings
 
