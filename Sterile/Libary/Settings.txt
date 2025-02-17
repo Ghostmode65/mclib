@@ -1,64 +1,3 @@
-Sys = {admin = true,skipload = true}
-if not Sys.admin then Sys.skipload = false end
-
-Falsify = function(error)
-    if error and Sys.admin then Chat:log('§cDebug Log:§f '..error) end
-     return setmetatable({}, {
-         __index = function() return nil end, --Any property returns false
-         __call = function() return nil end  --Any method call returns false
-     })
- end
- 
- 
- Secure = function(error,func)
-     return function(...)
-         local status, response = pcall(func, ...)
-         if not status then Chat:log('§4Critcal Error: '..error) return Falsify() end
-         return response
-     end
- end
-
-
-Sys.tableToString = function(tbl, indent)
-    indent = indent or 0
-    local spacing = string.rep(" ", indent)
-    local toString = spacing .. "{\n"
-
-    for key, value in pairs(tbl) do
-        local formattedKey = string.format("%s['%s'] = ", spacing .. "    ", tostring(key))
-
-        if type(value) == "table" then
-            toString = toString .. formattedKey .. "\n" .. Sys.tableToString(value, indent + 4) .. ",\n"
-        elseif type(value) ~= "string" then
-            toString = toString .. formattedKey .."'" .. tostring(value).."'" .. ",\n"
-        elseif key ~= "func" then
-            toString = toString .. formattedKey .. "" .. tostring(value) .. ",\n"
-        else toString = toString .. formattedKey .. "'" .. tostring(value) .. "',\n"
-        end
-    end
-
-    toString = toString .. spacing .. "}"
-    return toString
-end
-
-Sys.printTable = function(tbl, depth)
-    if depth == nil then Chat:log('§d~~~~~~~~~~') end
-    if not depth or type(depth) ~= "number" then depth = 0 end
-    local indent = string.rep("    ", depth)
-
-    for key, value in pairs(tbl) do
-        if type(value) == "table" then
-            Chat:log(indent .. "§e[" .. tostring(key) or "" .. "] = {")
-            Sys.printTable(value, depth + 1)
-            Chat:log(indent .. "§e},")
-        elseif type(value) ~= "function" then
-            Chat:log(indent .. tostring(key) .. ": " .. tostring(value) .. ",")
-        end
-    end
-
-    if depth == 0 then Chat:log('§d~~~~~~~~~~') end
-end
-
 local Settings = {}
 Settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
 
@@ -172,7 +111,7 @@ update = function(Table)
 return Settings
 
 --Todo:
-
+--Remove Sys Table
 --Debug Funcions
     --> Override save file
 
