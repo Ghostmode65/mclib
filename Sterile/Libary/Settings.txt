@@ -89,9 +89,8 @@ end
 
 
 Settings.manger = function(fileName)
-local file = Settings.Folder..fileName..".lua"
-    if not FS:exists(file) then return Falsify('Settings not found') end
-local plugin = Settings.load()
+    if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
+local plugin = Settings.load(fileName)
 
 local rework = {
 add = function(Table) --Wont Work Like this
@@ -114,7 +113,7 @@ update = function(Table)
 
 local save = function(Table)
 for key, value in pairs(Table) do
-        plugin.Settings[key] = value
+        plugin.Settings[key].value = value
     end
 Settings.overWrite(fileName,plugin.Info.Version,plugin.Settings)
 end
@@ -126,9 +125,7 @@ save = save,
 
 }end
 
-
 return Settings
-
 
 
 
