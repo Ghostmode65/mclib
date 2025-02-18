@@ -112,10 +112,12 @@ update = function(Table)
 }
 
 local save = function(Table)
+
 for key, value in pairs(Table) do
         plugin.Settings[key].value = value
     end
 Settings.overWrite(fileName,plugin.Info.Version,plugin.Settings)
+if Sys.administrator then Chat:log('Saved') Sys.printTable(Table) end
 end
 
 
@@ -125,8 +127,8 @@ save = save,
 
 }end
 
-return Settings
 
+return Settings
 
 
 
