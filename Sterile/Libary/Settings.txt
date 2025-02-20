@@ -1,3 +1,5 @@
+
+
 local Settings = {}
 Settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
 
@@ -89,14 +91,18 @@ end
 
 Settings.manager = function(fileName)
     if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
+     Chat:log('Going to load FIle')
+     Chat:log(fileName)
+    Client:waitTick(10)
+   
 local plugin = Settings.load(fileName)
-Chat:log('Going to load plugin')
-Client:waitTick(10)
-Sys.printTable(plugin)
+
+Sys.printTable(plugin.Settings)
 
 
-local save = function()
-if Sys.administrator then Chat:log('Saved') Sys.printTable() end
+
+local save = function(newValues)
+if Sys.administrator then Chat:log('Saved') Sys.printTable(newValues) end
 
 end
 
@@ -108,10 +114,10 @@ save = save,
 }end
 
 
+
+
+
 return Settings
-
-
-
 
 
 
