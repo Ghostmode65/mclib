@@ -26,7 +26,9 @@ Settings.overWrite = function(fileName,Version,table)
         FS:open(Settings.Folder..fileName..".lua"):write("return "..[[{
         ['Info'] = {['Version'] = ]]..tostring(Version)..[[},
         ['Settings'] = ]]..Sys.tableToString(table) .. [[}]])
-end end
+end 
+Chat:log('File Overwriten')
+end
 
 Settings.load = Secure("Settings Loader",function(fileName)
     local file = Settings.Folder..fileName..".lua"
