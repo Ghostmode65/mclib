@@ -95,6 +95,7 @@ end
 
 Settings.manager = function(fileName)
     if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
+    Chat:log('Getting Plugin')
     Client:waitTick()
 local plugin = Settings.load(fileName)
 Sys.printTable(plugin.Settings)
