@@ -91,14 +91,8 @@ end
 Settings.saveTest = function(fileName,newValues)
     if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
     local plugin = Settings.load(fileName)
-
-    if Sys.administrator then Chat:log('Saved') Sys.printTable(newValues) end
-    for key, value in pairs(newValues) do
-            plugin.Settings[key].value = value
-        end
-    Settings.overWrite(fileName,plugin.Info.Version,plugin.Settings)
-    end
-
+Chat:log('Found')
+end
 
 return Settings
 
