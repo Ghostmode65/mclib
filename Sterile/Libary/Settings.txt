@@ -90,25 +90,8 @@ end
 Settings.manager = function(fileName)
     if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
 local plugin = Settings.load(fileName)
+Sys.printTable(plugin.Settings)
 
---[[local rework = {
-add = function(Table) --Wont Work Like this
-    local newer, shouldUpdate = {}, false
-    for key, setting in pairs(plugin) do
-        if not plugin.Settings[key] then
-            table.insert(newer, setting)
-            shouldUpdate = true
-        end end
-    if shouldUpdate then Settings.genarate(fileName,newer) end
-end,
-
-
-
-update = function(Table)
-    if Table.Info.Version > plugin.Info.Version then
-        Settings.genarate(fileName,table)
-    end end,
-}]]
 
 local save = function()
 if Sys.administrator then Chat:log('Saved') Sys.printTable() end
