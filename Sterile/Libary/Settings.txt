@@ -95,11 +95,13 @@ end
 
 Settings.manager = function(fileName)
     if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
-    Client:waitTick(5)
+Chat:log("Going to load File")    
+Client:waitTick(5)
 local plugin = Settings.load(fileName)
 Sys.printTable(plugin.Settings)
 
-
+Chat:log("Going to save File")
+Client:waitTick(5)
 local save = function(newValues)
 if Sys.administrator then Chat:log('Saved') Sys.printTable(newValues) end
 for key, value in pairs(newValues) do
