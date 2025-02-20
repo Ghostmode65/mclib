@@ -94,19 +94,23 @@ end
 
 
 Settings.manager = function(fileName)
+ Chat:log('Checing Folder')
+Client:waitTick(20)
     if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
     Chat:log('Getting Plugin')
-    Client:waitTick()
+    Client:waitTick(20)
 local plugin = Settings.load(fileName)
 Sys.printTable(plugin.Settings)
 
+ Client:waitTick(20)
+  Chat:log('Going to save')
 
 local save = function(newValues)
 if Sys.administrator then Chat:log('Saved') Sys.printTable(newValues) end
 Client:waitTick()
---for key, value in pairs(newValues) do
-        --plugin.Settings[key].value = value
-    --end
+for key, value in pairs(newValues) do
+        plugin.Settings[key].value = value
+    end
 Settings.overWrite(fileName,plugin.Info.Version,plugin.Settings)
 end
 
