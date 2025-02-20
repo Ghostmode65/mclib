@@ -18,6 +18,8 @@ Settings.new = function(fileName,Version,table)
 end
 
 Settings.overWrite = function(fileName,Version,table)
+Chat:log('Overwriting File')
+Client:wait(10)
     if not FS:exists(Settings.Folder..fileName..".lua") then  
     Settings.genarate(fileName,[[{
         ['Info'] = {['Version'] = ]]..tostring(Version)..[[},
