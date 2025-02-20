@@ -16,7 +16,6 @@ Settings.new = function(fileName,Version,table)
 end
 
 Settings.overWrite = function(fileName,Version,table)
-if Sys.administrator then Chat:log('Over Writing '..fileName) end
 Client:waitTick()
     if not FS:exists(Settings.Folder..fileName..".lua") then
     Settings.genarate(fileName,[[{
@@ -27,7 +26,6 @@ Client:waitTick()
         ['Info'] = {['Version'] = ]]..tostring(Version)..[[},
         ['Settings'] = ]]..Sys.tableToString(table) .. [[}]])
 end
-if Sys.administrator then Chat:log('Over Wrote '..fileName) end
 end
 
 Settings.load = Secure("Settings Loader",function(fileName)
@@ -95,7 +93,7 @@ Settings.manager = function(fileName)
     if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
     Client:waitTick()
 local plugin = Settings.load(fileName)
-Sys.printTable(plugin.Settings)
+if not plugin then return Falsify('Settings are invalid') end
 
 
 local save = function(newValues)
@@ -109,15 +107,11 @@ end
 
 
 return{
-
 save = save,
-
 }end
 
 
-
 return Settings
-
 
 
  
