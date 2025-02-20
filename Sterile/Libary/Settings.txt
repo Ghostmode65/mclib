@@ -1,4 +1,3 @@
-
 local Settings = {}
 Settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
 
@@ -88,13 +87,47 @@ return {
 end
 
 
-Settings.saveTest = function(fileName,newValues)
+Settings.manager = function(fileName)
     if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
-    local plugin = Settings.load(fileName)
-Chat:log('Found')
+local plugin = Settings.load(fileName)
+
+--[[local rework = {
+add = function(Table) --Wont Work Like this
+    local newer, shouldUpdate = {}, false
+    for key, setting in pairs(plugin) do
+        if not plugin.Settings[key] then
+            table.insert(newer, setting)
+            shouldUpdate = true
+        end end
+    if shouldUpdate then Settings.genarate(fileName,newer) end
+end,
+
+
+
+update = function(Table)
+    if Table.Info.Version > plugin.Info.Version then
+        Settings.genarate(fileName,table)
+    end end,
+}]]
+
+local save = function(newValues)
+if Sys.administrator then Chat:log('Saved') Sys.printTable(newValues) end
+for key, value in pairs(newValues) do
+        plugin.Settings[key].value = value
+    end
+Settings.overWrite(fileName,plugin.Info.Version,plugin.Settings)
 end
 
+
+return{
+
+save = save,
+
+}end
+
+
 return Settings
+
 
 
 
