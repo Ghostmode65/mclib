@@ -1,5 +1,3 @@
-Chat:log('Accessing Settings')
-
 local Settings = {}
 Settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
 
@@ -32,14 +30,9 @@ end
 
 Settings.load = Secure("Settings Loader",function(fileName)
     local file = Settings.Folder..fileName..".lua"
-Chat:log('target file '..file)
-Client:waitTick(20)
     if not FS:exists(file) then return false end
-Chat:log('File Found ')
-Client:waitTick(20)
+
     local script = load(FS:open(file):read())
-Chat:log('File Loaded ')
-Client:waitTick(20)
     if script then return script() end
 end)
 
@@ -97,16 +90,11 @@ end
 
 
 Settings.manager = function(fileName)
- Chat:log('Checing Folder')
-Client:waitTick(20)
     if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
-    Chat:log('Getting Plugin')
-    Client:waitTick(20)
+    Client:waitTick()
 local plugin = Settings.load(fileName)
 if not plugin then return Falsify('Settings are invalid') end
 
- Client:waitTick(20)
-  Chat:log('Going to save')
 
 local save = function(newValues)
 if Sys.administrator then Chat:log('Saved') Sys.printTable(newValues) end
