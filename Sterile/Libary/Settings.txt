@@ -1,5 +1,3 @@
-Chat:log('Settings Loaded')
-
 local Settings = {}
 Settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
 
@@ -18,9 +16,9 @@ Settings.new = function(fileName,Version,table)
 end
 
 Settings.overWrite = function(fileName,Version,table)
-Chat:log('Overwriting File')
-Client:wait(10)
-    if not FS:exists(Settings.Folder..fileName..".lua") then  
+if Sys.administrator then Chat:log('Over Writing '..fileName) end
+Client:waitTick()
+    if not FS:exists(Settings.Folder..fileName..".lua") then
     Settings.genarate(fileName,[[{
         ['Info'] = {['Version'] = ]]..tostring(Version)..[[},
         ['Settings'] = ]]..Sys.tableToString(table) .. [[}]])
@@ -28,8 +26,8 @@ Client:wait(10)
         FS:open(Settings.Folder..fileName..".lua"):write("return "..[[{
         ['Info'] = {['Version'] = ]]..tostring(Version)..[[},
         ['Settings'] = ]]..Sys.tableToString(table) .. [[}]])
-end 
-Chat:log('File Overwriten')
+end
+if Sys.administrator then Chat:log('Over Wrote '..fileName) end
 end
 
 Settings.load = Secure("Settings Loader",function(fileName)
@@ -94,21 +92,19 @@ end
 
 
 Settings.manager = function(fileName)
-Chat:log("Getting Manager") 
     if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
-Chat:log("Going to load File")    
-Client:waitTick(5)
+    Client:waitTick()
 local plugin = Settings.load(fileName)
 Sys.printTable(plugin.Settings)
 
-Chat:log("Going to save File")
-Client:waitTick(5)
+
 local save = function(newValues)
 if Sys.administrator then Chat:log('Saved') Sys.printTable(newValues) end
---for key, value in pairs(newValues) do
-       -- plugin.Settings[key].value = value
-    --end
---Settings.overWrite(fileName,plugin.Info.Version,plugin.Settings)
+Client:waitTick()
+for key, value in pairs(newValues) do
+        plugin.Settings[key].value = value
+    end
+Settings.overWrite(fileName,plugin.Info.Version,plugin.Settings)
 end
 
 
@@ -120,10 +116,7 @@ save = save,
 
 
 
-
-
 return Settings
-
 
 
 
