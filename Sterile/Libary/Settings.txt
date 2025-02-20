@@ -1,3 +1,5 @@
+Chat:log('Accessing Settings')
+
 local Settings = {}
 Settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
 
