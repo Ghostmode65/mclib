@@ -98,7 +98,10 @@ local plugin = Settings.load(fileName)
 
 local save = function(newValues)
 if Sys.administrator then Chat:log('Saved') Sys.printTable(newValues) end
-
+for key, value in pairs(newValues) do
+        plugin.Settings[key].value = value
+    end
+Settings.overWrite(fileName,plugin.Info.Version,plugin.Settings)
 end
 
 
