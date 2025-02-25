@@ -1,0 +1,48 @@
+local Injected = {
+    settings = Sys.InjectFile("https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Libary/Settings.txt")
+}
+
+local Print = {
+    Data = { Logs = {}, ConsoleLogs = {} }
+}
+
+local Settings = Injected.settings.get('Fabric Refresher') or {}
+
+
+Print.log = function(text, header, method)
+    local message = header and (header .. "§7") or "§7Console: ".. text
+    table.insert(Print.Data.Logs, message)
+    
+   method = method or ((Settings['Log Method'] and Settings['Log Method'].value) or 'Chat')
+
+    local methods = {
+        Toast = function() Chat:toast(header or "Message", text) end,
+        Console = function() end,
+        Chat = function() Chat:log(message) end
+    }
+
+    methods[method]()
+    return true
+end
+
+
+Print.Print = {
+    msg = function(text, header)
+        Print.log("§f" .. text, header or "§aConsole:")
+    end,
+    log = function(text)
+        if Settings["logs"]["log"] then Print.log("§a" .. text, "§fLog:") end
+    end,
+    debug = function(text) if Settings.logs and Settings["logs"]["debug"] then Print.log("§f" .. text, "§dDebug:") end
+    end,
+    warn = function(text) Print.log("§f" .. text, "§e⚠ Warning:") end,
+    error = function(text) Print.log("§c" .. text, "§4⚠ Error:") Sys.fullscreen() end
+}
+
+Print.massPrint = function(tbl)
+    for header, text in pairs(tbl) do
+        Print.Print.msg(text, header)
+    end
+end
+
+return Print
