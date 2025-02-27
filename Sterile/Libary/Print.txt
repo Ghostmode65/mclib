@@ -1,48 +1,106 @@
-local Injected = {
-    settings = Sys.InjectFile("https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Libary/Settings.txt")
-}
-
-local Print = {
-    Data = { Logs = {}, ConsoleLogs = {} }
-}
-
-local Settings = Injected.settings.get('Fabric Refresher') or {}
-
-
-Print.log = function(text, header, method)
-    local message = header and (header .. "§7") or "§7Console: ".. text
-    table.insert(Print.Data.Logs, message)
+local InjectFile = function(url)
+    if not url or type(url) ~= "string" then Chat:log('§4System Error: §fInvalid file'.." [code]") return false end
     
-   method = method or ((Settings['Log Method'] and Settings['Log Method'].value) or 'Chat')
+    local success, result = pcall(function()
+        local script = load(Request:create(url):get():text())
+        return script and script() or false
+    end)
+    
+    if not success then Chat:log('§4System Error: §fFailed to load'.." [execute]") return false end
+    return result
+end
 
+local Injected = {
+    settings = InjectFile("https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Libary/Settings.txt") or nil}
+
+--If your using Globals then the above is not required
+
+local Print =
+{
+    Data = {Logs = {}, ConsoleLogs = {}},
+    Colors = {white = "§f",green = "§a",blue = "§b",purple = "§d",yellow = "§e",red = "§c",darkRed = "§4",gray = "§7"},
+    Icons = {warning = "⚠ ",error = "⚠ ",info = "ℹ ",success = "✓ "}
+}
+
+
+local Settings = Injected and Injected.settings and Injected.settings.get('Fabric Refresher') or
+{
+    ['Log Method'] = {value = 'Chat'},
+    logs = {log = true,debug = true}
+}
+
+local function formatMessage(text, header, textColor)
+    textColor = textColor or Print.Colors.white
+    if not text:find("^§") then text = textColor .. text end
+    return header and (header.." ".. Print.Colors.gray..text) or (Print.Colors.gray .. "Console: " .. text)
+end
+
+
+Print.log = function(text, header, options)
+    options = options or {}
+    local method = options.method or ((Settings['Log Method'] and Settings['Log Method'].value) or 'Chat')
+    local color = options.color
+    local showTimestamp = options.timestamp or (Settings['Time Stamp'] and Settings['Time Stamp'].value or false)
+    
+    local message = (showTimestamp and "[" .. os.date("%H:%M:%S | ") .. "] " or "") .. formatMessage(text, header, color)
+    table.insert(Print.Data.Logs, "[" .. os.date("%H:%M:%S | ") .. "] " .. formatMessage(text, header, color))
+    
     local methods = {
         Toast = function() Chat:toast(header or "Message", text) end,
-        Console = function() end,
-        Chat = function() Chat:log(message) end
+        Console = function() table.insert(Print.Data.ConsoleLogs, message) end,
+        Chat = function() Chat:log(message) end,
+        Silent = function() end
     }
 
-    methods[method]()
+    (methods[method] or methods.Chat)()
     return true
 end
 
 
 Print.Print = {
-    msg = function(text, header)
-        Print.log("§f" .. text, header or "§aConsole:")
+    msg = function(text, header, options)
+        Print.log(text, header or (Print.Colors.green .. "Console:"), options or {}) end,
+    
+    log = function(text, options)
+        if Settings.logs and Settings.logs.log then 
+            Print.log(text, Print.Colors.white .. "Log:", options or {})
+        end
     end,
-    log = function(text)
-        if Settings["logs"]["log"] then Print.log("§a" .. text, "§fLog:") end
+    
+    debug = function(text, options)
+        if Settings.logs and Settings.logs.debug then 
+            return Print.log(text, Print.Colors.purple .. "Debug:", options or {})
+        end
     end,
-    debug = function(text) if Settings.logs and Settings["logs"]["debug"] then Print.log("§f" .. text, "§dDebug:") end
+    
+    warn = function(text, options)
+        Print.log(text, Print.Colors.yellow .. Print.Icons.warning .. "Warning:", options or {})
+        if options.fullscreen ~= false then Sys.fullscreen() end
     end,
-    warn = function(text) Print.log("§f" .. text, "§e⚠ Warning:") end,
-    error = function(text) Print.log("§c" .. text, "§4⚠ Error:") Sys.fullscreen() end
+    
+    error = function(text, options)
+        return Print.log(text, Print.Colors.darkRed .. Print.Icons.error .. "Error:", options or {})
+    end,
+    
+    success = function(text, options)
+        return Print.log(text, Print.Colors.green .. Print.Icons.success .. "Success:", options or {})
+    end,
+    
+    info = function(text, options)
+        return Print.log(text, Print.Colors.blue .. Print.Icons.info .. "Info:", options or {})
+    end
 }
 
-Print.massPrint = function(tbl)
+Print.massPrint = function(tbl, options)
     for header, text in pairs(tbl) do
-        Print.Print.msg(text, header)
+        Print.Print.msg(text, header, options)
     end
 end
+
+Print.clearLogs = function()
+    Print.Data.Logs = {}
+    return true
+end
+
 
 return Print

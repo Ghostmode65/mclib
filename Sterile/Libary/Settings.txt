@@ -1,3 +1,68 @@
+local Falsify = function(error)
+if error and Sys and Sys.admin then Chat:log('§cDebug Log:§f '..error) end
+    return setmetatable({}, {
+        __index = function() return nil end, --Any property returns false
+        __call = function() return nil end  --Any method call returns false
+    })
+end
+
+
+local Secure = function(error,func)
+    return function(...)
+        local status, response = pcall(func, ...)
+        if not status then Chat:log('§4Critcal Error: '..error) return Falsify() end
+        return response
+    end
+end
+
+local Lib = {}
+
+Lib.tableToString = function(tbl, indent)
+    indent = indent or 0
+    local spacing = string.rep(" ", indent)
+    local toString = spacing .. "{\n"
+    local isArray = #tbl > 0 -- Check if the table behaves like an array
+
+    for key, value in pairs(tbl) do
+        local formattedKey = isArray and spacing .. "    " or string.format("%s['%s'] = ", spacing .. "    ", tostring(key))
+
+        if type(value) == "table" then
+            toString = toString .. formattedKey .. "\n" .. Lib.tableToString(value, indent + 4) .. ",\n"
+        elseif type(value) == "number" then
+            toString = toString .. formattedKey .. value .. ",\n"
+        elseif type(value) ~= "string" or key == "func" then
+            toString = toString .. formattedKey .. "'" .. tostring(value) .. "'" .. ",\n"
+        else
+            toString = toString .. formattedKey .. "'" .. tostring(value) .. "',\n"
+        end
+    end
+
+    toString = toString .. spacing .. "}"
+    return toString
+end
+ 
+
+
+Lib.printTbl = function(tbl, depth)
+    if type(tbl) ~= "table" then Chat:log("§4Critcal Error: No table to print ") return false end
+    if depth == nil then Chat:log('§d~~~~~~~~~~') end
+    if not depth or type(depth) ~= "number" then depth = 0 end
+    local indent = string.rep("    ", depth)
+
+    for key, value in pairs(tbl) do
+        if type(value) == "table" then
+            Chat:log(indent .. "§e[" .. tostring(key) or "" .. "] = {")
+            Lib.printTbl(value, depth + 1)
+            Chat:log(indent .. "§e},")
+        elseif type(value) ~= "function" then
+            Chat:log(indent .. tostring(key) .. ": " .. tostring(value) .. ",")
+        end
+    end
+    if depth == 0 then Chat:log('§d~~~~~~~~~~') end
+end
+
+--Wont need code above if they are set as globals
+
 local Settings = {}
 Settings.Folder = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
 
@@ -12,7 +77,7 @@ Settings.add = function(fileName,Version,tbl)
     if FS:exists(Settings.Folder..fileName..".lua") then return false end
     Settings.genarate(fileName,[[{
 ['Info'] = {['Version'] = ]]..tostring(Version)..[[},
-['Settings'] = ]]..Sys.tableToString(tbl) .. [[}]])
+['Settings'] = ]]..Lib.tableToString(tbl) .. [[}]])
 end
 
 Settings.overWrite = function(fileName,Version,tbl)
@@ -20,13 +85,12 @@ Client:waitTick()
     if not FS:exists(Settings.Folder..fileName..".lua") then
     Settings.genarate(fileName,[[{
         ['Info'] = {['Version'] = ]]..tostring(Version)..[[},
-        ['Settings'] = ]]..Sys.tableToString(tbl) .. [[}]])
+        ['Settings'] = ]]..Lib.tableToString(tbl) .. [[}]])
     else
         FS:open(Settings.Folder..fileName..".lua"):write("return "..[[{
         ['Info'] = {['Version'] = ]]..tostring(Version)..[[},
-        ['Settings'] = ]]..Sys.tableToString(tbl) .. [[}]])
-end
-end
+        ['Settings'] = ]]..Lib.tableToString(tbl) .. [[}]])
+    end end
 
 Settings.load = Secure("Settings Loader",function(fileName)
     local file = Settings.Folder..fileName..".lua"
@@ -42,41 +106,29 @@ Settings.get = Secure("Loading Setting", function(fileName)
 end)
 
 Settings.create = function(key,parent)
-local button = function(Table)
-    local width, height = Table.width, Table.height
-    local type, value, text, func = 'button',Table.value, Table.text, Table.func
-    parent[key] ={Render = {type = type,width = width,height = height,text = text,func = func},value = value}
-    
+local button = function(Tbl)
+    parent[key] ={Render = {type = 'button',width = Tbl.width,height = Tbl.height,
+        text = Tbl.text,func = Tbl.func},value = Tbl.value}
     end
     
-local slider = function(Table)
-    local width, height = Table.width, Table.height
-    local type, value, text, func = 'slider',Table.value, Table.text, Table.func
-    parent[key] ={Render = {type = type,width = width,height = height,text = text,func = func},value = value}
-    
-    return nil
+local slider = function(Tbl)
+    parent[key] ={Render = {type = 'slider',width = Tbl.width,height = Tbl.height,
+        text = Tbl.text,func = Tbl.func},value = Tbl.value}
     end
     
-local checkbox = function(Table) -- x,y,width,height,text,value,align,element, func
-    local width, height = Table.width, Table.height
-    local type, value, text, func = 'checkBox',Table.value, Table.text, Table.func
-     parent[key] ={Render = {type = type,width = width,height = height,text = text,func = func},value = value}
-    
+local checkbox = function(Tbl) -- x,y,width,height,text,value,align,element, func
+     parent[key] ={Render = {type = 'checkbox',width = Tbl.width,height = Tbl.height,
+        text = Tbl.text,func = Tbl.func},value = Tbl.value}
     end
     
-local cyclingButton = function(Table) --x,y,width,height,prefix,table1,table2,align,element,func
-        local width, height = Table.width, Table.height
-        local type, value,prefix, options, options2, func = 'cyclingButton',Table.value,Table.prefix, Table.options,Table.options2, Table.func
-        parent[key] ={Render = {type = type,width = width,height = height,options = options,options2 = options2,
-        func = func},value = value} --Colors: Blue (Takes the text after :)
-        
+local cyclingButton = function(Tbl) --x,y,width,height,prefix,table1,table2,align,element,func
+        parent[key] ={Render = {type = 'cyclingButton',width = Tbl.width,height = Tbl.height,
+            prefix = Tbl.prefix,table1 = Tbl.table1,table2 = Tbl.table2,func = Tbl.func},value = Tbl.value}
     end
 
-local textInput = function(Table)
-    local width, height = Table.width, Table.height
-    local type, value, text, suggestion, maxCharacters, func = 'textInput',Table.value, Table.text, Table.suggestion, Table.maxCharacters, Table.func
-    parent[key] ={Render = {type = type,width = width,height = height,text = text,suggestion = suggestion,maxCharacters = maxCharacters,
-        func = func}, value = value}
+local textInput = function(Tbl)
+    parent[key] ={Render = {type = 'textInput',width = Tbl.width,height = Tbl.height,
+       text = Tbl.text, suggestion = Tbl.suggestion, maxCharacters = Tbl.maxCharacters,func = Tbl.func},value = Tbl.value}
         
     end
 return {
@@ -89,6 +141,7 @@ return {
 end
 
 
+
 Settings.manager = function(fileName)
     if not FS:exists(Settings.Folder..fileName..".lua") then return Falsify('Settings not found') end
     Client:waitTick()
@@ -97,7 +150,7 @@ if not plugin then return Falsify('Settings are invalid') end
 
 
 local save = function(newValues)
-if Sys.administrator then Chat:log('Saved') Sys.printTable(newValues) end
+if Sys and Sys.administrator then Chat:log('Saved') Lib.printTbl(newValues) end
 Client:waitTick()
 for key, value in pairs(newValues) do
         plugin.Settings[key].value = value
@@ -105,10 +158,13 @@ for key, value in pairs(newValues) do
 Settings.overWrite(fileName,plugin.Info.Version,plugin.Settings)
 end
 
+local get ={
+version = function()
+    return plugin.Info.Version end
+}
 
-return{
-save = save,
-}end
-
+return{save = save,get = get}end
 
 return Settings
+
+
