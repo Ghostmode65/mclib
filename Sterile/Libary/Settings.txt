@@ -40,7 +40,7 @@ Lib.tableToString = function(tbl, indent)
     toString = toString .. spacing .. "}"
     return toString
 end
- 
+    
 
 
 Lib.printTbl = function(tbl, depth)
@@ -117,18 +117,18 @@ local slider = function(Tbl)
     end
     
 local checkbox = function(Tbl) -- x,y,width,height,text,value,align,element, func
-     parent[key] ={Render = {type = 'checkbox',width = Tbl.width,height = Tbl.height,
+        parent[key] ={Render = {type = 'checkbox',width = Tbl.width,height = Tbl.height,
         text = Tbl.text,func = Tbl.func},value = Tbl.value}
     end
     
 local cyclingButton = function(Tbl) --x,y,width,height,prefix,table1,table2,align,element,func
         parent[key] ={Render = {type = 'cyclingButton',width = Tbl.width,height = Tbl.height,
-            prefix = Tbl.prefix,table1 = Tbl.options,table2 = Tbl.options2,func = Tbl.func},value = Tbl.value}
+            prefix = Tbl.prefix,options = Tbl.options,options2 = Tbl.options2,func = Tbl.func},value = Tbl.value}
     end
 
 local textInput = function(Tbl)
     parent[key] ={Render = {type = 'textInput',width = Tbl.width,height = Tbl.height,
-       text = Tbl.text, suggestion = Tbl.suggestion, maxCharacters = Tbl.maxCharacters,func = Tbl.func},value = Tbl.value}
+        text = Tbl.text, suggestion = Tbl.suggestion, maxCharacters = Tbl.maxCharacters,func = Tbl.func},value = Tbl.value}
         
     end
 return {
@@ -165,7 +165,4 @@ version = function()
 
 return{save = save,get = get}end
 
-
-
 return Settings
-
