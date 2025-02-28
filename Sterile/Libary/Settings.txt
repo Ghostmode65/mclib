@@ -123,7 +123,7 @@ local checkbox = function(Tbl) -- x,y,width,height,text,value,align,element, fun
     
 local cyclingButton = function(Tbl) --x,y,width,height,prefix,table1,table2,align,element,func
         parent[key] ={Render = {type = 'cyclingButton',width = Tbl.width,height = Tbl.height,
-            prefix = Tbl.prefix,table1 = Tbl.table1,table2 = Tbl.table2,func = Tbl.func},value = Tbl.value}
+            prefix = Tbl.prefix,table1 = Tbl.options,table2 = Tbl.options2,func = Tbl.func},value = Tbl.value}
     end
 
 local textInput = function(Tbl)
@@ -165,6 +165,7 @@ version = function()
 
 return{save = save,get = get}end
 
-return Settings
 
+
+return Settings
 
