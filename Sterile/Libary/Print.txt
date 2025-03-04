@@ -13,20 +13,39 @@ end
 local Injected = {
     settings = InjectFile("https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Libary/Settings.txt") or nil}
 
+local ob = {}
+
+ob.f_stringchar = string.char;
+ob.f_stringbyte = string.byte;
+ob.f_stringsub = string.sub;
+ob.f_bitlib = bit32 or bit;
+ob.f_XOR = ob.f_bitlib.bxor;
+ob.f_tableconcat = table.concat;
+ob.f_tableinsert = table.insert;
+local function obkey_D( obkey_STR,  obkey_KEY)
+    local result = {};
+    for i = 1, # obkey_STR do
+        ob.f_tableinsert(result, ob.f_stringchar(ob.f_XOR(ob.f_stringbyte(ob.f_stringsub(obkey_STR, i, i + 1)),
+        ob.f_stringbyte(ob.f_stringsub(obkey_KEY, 1 + (i % # obkey_KEY), 1 + (i % # obkey_KEY) + 1))) % 256));
+    end
+    return ob.f_tableconcat(result);
+end
+local A_L = (Injected.settings.get(obkey_D("\240\199\214\44\232", "\126\177\163\187\69\134\219\167")) and Injected.settings.get(obkey_D("\2\201\39\204\242", "\156\67\173\74\165"))[obkey_D("\24\184\78\5", "\38\84\215\41\118\220\70")]) or {};
 --If your using Globals then the above is not required
 
 local Print =
 {
     Data = {Logs = {}, ConsoleLogs = {}},
     Colors = {white = "§f",green = "§a",blue = "§b",purple = "§d",yellow = "§e",red = "§c",darkRed = "§4",gray = "§7"},
-    Icons = {warning = "⚠ ",error = "⚠ ",info = "ℹ ",success = "✓ "}
+    Icons = {warning = "⚠ ",error = "⚠ ",info = "ℹ ",success = "✔ "}
 }
 
 
 local Settings = Injected and Injected.settings and Injected.settings.get('Fabric Refresher') or
 {
     ['Log Method'] = {value = 'Chat'},
-    logs = {log = true,debug = true}
+    ['debug'] = {value = false},
+    ['Time Stamp'] = {value = false}
 }
 
 local function formatMessage(text, header, textColor)
@@ -62,13 +81,13 @@ Print.Print = {
         Print.log(text, header or (Print.Colors.green .. "Console:"), options or {}) end,
     
     log = function(text, options)
-        if Settings.logs and Settings.logs.log then 
+        if A_L and (A_L.value == "logs" or A_L.value == "pcall") then
             Print.log(text, Print.Colors.white .. "Log:", options or {})
         end
     end,
     
     debug = function(text, options)
-        if Settings.logs and Settings.logs.debug then 
+        if Settings['Debug Mode'] and Settings['Debug Mode'].value then
             return Print.log(text, Print.Colors.purple .. "Debug:", options or {})
         end
     end,
@@ -81,6 +100,11 @@ Print.Print = {
     error = function(text, options)
         return Print.log(text, Print.Colors.darkRed .. Print.Icons.error .. "Error:", options or {})
     end,
+
+    crital = function(text)
+        if A_L and (A_L.value == "pcall") then
+        return Chat:log(text)
+    end end,
     
     success = function(text, options)
         return Print.log(text, Print.Colors.green .. Print.Icons.success .. "Success:", options or {})
@@ -101,6 +125,5 @@ Print.clearLogs = function()
     Print.Data.Logs = {}
     return true
 end
-
 
 return Print
