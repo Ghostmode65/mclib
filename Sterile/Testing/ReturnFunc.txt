@@ -1,8 +1,0 @@
-local FunctionTable = {}
-Chat:log('Getting Function Table')
-
-FunctionTable.test = function()
-   Chat:log('Test')
-end
-
-return FunctionTable

@@ -1,0 +1,150 @@
+local InjectFile = function(url)
+    if not url or type(url) ~= "string" then Chat:log('§4System Error: §fInvalid file'.." [code]") return false end
+    
+    local success, result = pcall(function()
+        local script = load(Request:create(url):get():text())
+        return script and script() or false
+    end)
+    
+    if not success then Chat:log('§4System Error: §fFailed to load'.." [execute]") return false end
+    return result
+end
+
+local Injected = {
+    print = InjectFile("https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Libary/Print.txt") or nil,
+    settings = InjectFile("https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Libary/Settings.txt") or nil
+}
+
+local print = Injected.print.Print
+local Settings = Injected.settings.get("Fabric Refresher")
+local Data = {}
+
+local playSound = function(SoundId,Pitch)
+    local Volume = Settings and Settings["Volume"] and Settings.player['Volume'].value / 100
+    World:playSound(SoundId,Volume,Pitch or 1)
+end
+
+local Cmd = {}
+
+local Execute = function(Builder, callback, Tbl)
+Builder:executes(JavaWrapper:methodToJavaAsync(function(argument)
+
+local function executeCmd()
+if not Tbl then return callback()
+    else
+local args = {}
+for _, arg in ipairs(Tbl) do
+    for type, input in pairs(arg) do
+        if type ~= "suggestion" and type ~= "suggest" and type ~= "otherwise" then
+            --print.log("input = " .. input.." type = " .. type.." arg = " .. argument:getArg(input))
+            table.insert(args, argument:getArg(input))
+        end end end
+    return callback(table.unpack(args))
+    end end
+
+local success, error = pcall(executeCmd)
+if not success then print.error("Command execution failed") print.error(error) print.crital(error) end
+
+return true
+end)) end
+
+
+local function addArguments(Builder, Tbl, callback, isAlternative)
+if isAlternative and isAlternative > 1 then Builder:otherwise() end
+
+local argHandlers = {
+    boolean = function(input) Builder:booleanArg(input) end,
+    string = function(input) Builder:wordArg(input) end,
+    number = function(input) Builder:intArg(input) end,
+    greedy = function(input) Builder:greedyStringArg(input) end,
+    qoutedString = function(input) Builder:quotedStringArg(input) end,
+    literalArg = function(input) Builder:literalArg(input) end,
+    suggestion = function(suggestions) --Table
+        if suggestions then Builder:suggestMatching(suggestions) end end,
+    suggest = function(suggestions)
+        if type(suggestions) == "function" then
+            Builder:suggest(JavaWrapper:methodToJava(function(nullContext, suggestionsBuilder)
+                for _, suggestion in ipairs(suggestions()) do
+                    suggestionsBuilder:suggest(suggestion)
+                end end)) end
+        return Builder end,
+    otherwise = function(orTable)
+        if type(orTable) == "table" then
+            Execute(Builder, callback, Tbl)
+            Builder:otherwise()
+            addArguments(Builder, orTable, callback, 1)
+        end end,
+    Or = function(orTable)
+--Not Done
+        --addArguments(Builder, orTable, callback, 1)
+        --Use otherwise
+        end
+}
+
+for _, arg in ipairs(Tbl) do
+    for type, input in pairs(arg) do
+        if type ~= "otherwise" and argHandlers[type] then
+            argHandlers[type](input)
+        end end end
+    
+  
+local hasOtherwise = false
+for _, arg in ipairs(Tbl) do
+    for type, input in pairs(arg) do
+        if type == "otherwise" and argHandlers[type] then
+            hasOtherwise = true
+            argHandlers[type](input)
+    end end end
+    
+    if not hasOtherwise then Execute(Builder, callback, Tbl) end
+    return Builder
+end
+
+Cmd.Builder = function(Name, callback, ...)
+    local prefix = Settings and Settings["Command Prefix"] and Settings["Command Prefix"].value or "/"
+    Chat:getCommandManager():unregisterCommand(prefix .. Name)
+
+    local Tbl = {...}
+
+    local Builder = Chat:getCommandManager():createCommandBuilder(prefix .. Name)
+    if not Tbl or #Tbl == 0 then 
+        Execute(Builder, callback) 
+    else addArguments(Builder, Tbl, callback) end
+
+    Builder:register()
+    return Builder
+end
+
+local doChecks = function(Checks)
+if Checks == true then return true end
+for name, func in pairs(Checks) do
+    local success, result = pcall(func)
+    if not (success and result) then
+        playSound("entity.enderman.death", 10)
+        print.msg("§c"..name.." Failed")
+            if not result then print.crital(result) end
+        return false
+    end end
+return true end
+
+Cmd.add = function(name,func,Checks,...)
+    Cmd.Builder(name,function() if Checks == nil or doChecks(Checks) then func() else return true end end,...)
+end
+
+Cmd.addloop = function(name,Func,Checks,off,on,...) Cmd.Builder(name,function()
+    Data[name] = not Data[name]
+if not Data[name] then return nil end
+if not doChecks(Checks) then if off then off() end return nil end
+if on then on() end
+
+while doChecks(Checks) and Data[name] do
+    Time:sleep(1)
+    Func()
+end
+
+if off then off() end
+    Data[name] = false
+print.msg("§c"..name.." Disabled")
+end,...)  end
+
+return Cmd

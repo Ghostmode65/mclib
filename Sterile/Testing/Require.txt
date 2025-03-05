@@ -1,0 +1,8 @@
+local Test = {}
+Chat:log('Getting Function Table')
+
+Test.print = function()
+   Chat:log('Test')
+end
+
+return Test
