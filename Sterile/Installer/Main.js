@@ -18,7 +18,7 @@ try {
 }};
 
 Setup.Config = () => {
-    const url = "https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Config/Loader.js"; 
+    const url = "https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Installer/Config.js"; 
     const response = Request.get(url);
     if (response.responseCode === 200) {
          eval(Request.get(url).text());
@@ -29,7 +29,7 @@ Setup.Config = () => {
 
 
 Setup.Loader = () => {
-    const url = "https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Installer/Loader.js";
+    const url = "https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Installer/update_redirect.js";
     const response = Request.get(url);
     if (response.responseCode === 200) {
          eval(Request.get(url).text());

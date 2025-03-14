@@ -2,7 +2,7 @@ const Install = {};
 const loaderText = "FabricRefresher.lua"
 
 Install.Loader = () => {
-    const url = "https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Installer/Text-Loader.txt";
+    const url = "https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Installer/Redirect/Beta_1.txt";
     const response = Request.get(url);
 
     if (response.responseCode === 200) {
