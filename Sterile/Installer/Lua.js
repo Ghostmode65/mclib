@@ -41,7 +41,7 @@ Setup.Loader = () => {
 Setup.lua();
 
 try {
-    JsMacros.runScript('lua', 'Chat:actionbar("§dLua Extension Loaded")');
+    //JsMacros.runScript('lua', 'Chat:actionbar("§dLua Extension Loaded")');
     Client.waitTick(20);
 Setup.Loader();
     Chat.actionbar("§dGoing to Restart game soon, relaunch after exit");
