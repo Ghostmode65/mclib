@@ -1011,7 +1011,6 @@ Screen.presets.renderSettings = function()
     return settingsScreen
 end
 
-Screen.presets.renderSettings()
 
 return {
     D2D = D2D.presets,
