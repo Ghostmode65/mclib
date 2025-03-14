@@ -1,3 +1,19 @@
+local getfield = function(class,field)
+    local Field = Reflection:getDeclaredField(class:getClass(), field)
+    Field:setAccessible(true)
+return Field end
+
+local toggleFullscreen = function()
+    local window = getfield(Client:getMinecraft(), "field_1704"):get(Client:getMinecraft())
+    local isFullScreen = Reflection:getDeclaredMethod(window:getClass(), "method_4498", {})
+    local toggleFullscreen = Reflection:getDeclaredMethod(window:getClass(), "method_4500", {})
+    
+    if not Reflection:invokeMethod(isFullScreen, window, {}) then
+        toggleFullscreen:invoke(window, {})
+    end
+end
+
+
 local InjectFile = function(url)
     if not url or type(url) ~= "string" then Chat:log('§4System Error: §fInvalid file'.." [code]") return false end
     
@@ -11,7 +27,9 @@ local InjectFile = function(url)
 end
 
 local Injected = {
-    settings = InjectFile("https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Libary/Settings.txt") or nil}
+    settings = InjectFile("https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Libary/Settings.txt") or nil,
+    renders = InjectFile("https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Libary/Renders.txt") or nil
+}
 
 local ob = {}
 
@@ -35,7 +53,7 @@ local A_L = (Injected.settings.get(obkey_D("\240\199\214\44\232", "\126\177\163\
 
 local Print =
 {
-    Data = {Logs = {}, ConsoleLogs = {}},
+    Data = {Logs = {}, ConsoleLogs = {}, ConsoleWindow = nil},
     Colors = {white = "§f",green = "§a",blue = "§b",purple = "§d",yellow = "§e",red = "§c",darkRed = "§4",gray = "§7"},
     Icons = {warning = "⚠ ",error = "⚠ ",info = "ℹ ",success = "✔ "}
 }
@@ -66,7 +84,24 @@ Print.log = function(text, header, options)
     
     local methods = {
         Toast = function() Chat:toast(header or "Message", text) end,
-        Console = function() table.insert(Print.Data.ConsoleLogs, message) end,
+        Console = function() 
+            table.insert(Print.Data.ConsoleLogs, message)
+            
+            -- Initialize or update console window if renders library is available
+            if Injected.renders then
+                if not Print.Data.ConsoleWindow then
+                    Print.Data.ConsoleWindow = Injected.renders.D2D.consoleWindow("Console", Print.Data.ConsoleLogs, {
+                        color = 0x080508,
+                        titleColor = 0xFFFFFF
+                    })
+                else
+                    Print.Data.ConsoleWindow.update(Print.Data.ConsoleLogs)
+                end
+            else
+                -- Fallback if renders library isn't available
+                table.insert(Print.Data.ConsoleLogs, message)
+            end
+        end,
         Chat = function() Chat:log(message) end,
         Silent = function() end
     }
@@ -94,7 +129,7 @@ Print.Print = {
     
     warn = function(text, options)
         Print.log(text, Print.Colors.yellow .. Print.Icons.warning .. "Warning:", options or {})
-        if options.fullscreen ~= false then Sys.fullscreen() end
+        if not (options or (options and options.fullscreen)) then toggleFullscreen() end
     end,
     
     error = function(text, options)
@@ -123,6 +158,11 @@ end
 
 Print.clearLogs = function()
     Print.Data.Logs = {}
+    if Print.Data.ConsoleWindow then
+        Print.Data.ConsoleWindow.remove()
+        Print.Data.ConsoleWindow = nil
+    end
+    Print.Data.ConsoleLogs = {}
     return true
 end
 
