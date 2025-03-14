@@ -1,0 +1,1021 @@
+local InjectFile = function(url)
+    if not url or type(url) ~= "string" then Chat:log('§4System Error: §fInvalid file'.." [code]") return false end
+    
+    local success, result = pcall(function()
+        local script = load(Request:create(url):get():text())
+        return script and script() or false
+    end)
+    
+    if not success then Chat:log('§4System Error: §fFailed to load'.." [execute]") return false end
+    return result
+end
+
+
+
+local Async = function()
+local wrap = function(func) --Replacement for JavaWrapper:methodToJavaAsync(function() end)
+    JavaWrapper:methodToJavaAsync(function()
+        local success, result = pcall(func)
+        if not success then Chat:log("§4Critcal Error: ".."Async execution failed") end
+    end)()
+end
+    return {
+    wrap = wrap,
+    
+    run = function(script)
+        JsMacros:wrapScriptRunAsync("lua", script)
+    end,
+    
+    once = function(event, func)
+        JsMacros:once(event, wrap(func))
+    end,
+    
+    on = function(event, func)
+        JsMacros:on(event, wrap(func))
+    end
+    }
+end
+
+local Injected = {
+    settings = InjectFile("https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Libary/Settings.txt") or nil
+}
+
+local Settings = Injected and Injected.settings and Injected.settings.get('Fabric Refresher') or 
+{
+    ['Log Method'] = {value = 'Chat'},
+    ['debug'] = {value = false},
+}
+
+
+local globalScale = 1 --Max should be .25 Min | Max 2
+if globalScale <= 0 then globalScale = .1 end
+
+Hud:clearDraw2Ds()
+Hud:clearDraw3Ds()
+Client:waitTick(1)
+
+local Util = {
+    stringToText = function(text) return Chat:createTextHelperFromString(text) end,
+}
+
+local Colors = {
+    black = 0x080508,
+    white = 0xFFFFFF,
+    darkgray = 0x333333,
+    red = 0xff0000,
+    blue = 0x60C9F6,
+    green = 0x00FF00,
+    purple = 0x76349F,
+    orange = 0xF8974D
+}
+
+
+local Render = {
+
+    Tools = {},
+    Data = {
+        Settings = {},
+        toast = 0
+    },
+}
+
+
+local D2D = {presets = {}}
+local Screen = {
+    presets = {},
+    tools = {}}
+local D3D = {presets = {}}
+
+
+local alignmentMapping = {
+    left = "leftOnleft",
+    center = "centerOncenter",
+    right = "rightOnright",
+    top = "topOntop",
+    bottom = "bottomOnbottom",
+
+    under = "topOnbottom",
+    above = "bottomOntop",
+    rightSide = "leftOnright",
+    leftSide = "rightOnleft"
+}
+
+local function applyAlignment(object, alignConfig)
+    if alignConfig.x then object:alignHorizontally(alignConfig.x.alignment, alignConfig.x.offset or 0) end
+    if alignConfig.y then object:alignVertically(alignConfig.y.alignment, alignConfig.y.offset or 0) end
+end
+
+local function alignToParent(current, parent, alignConfig) --X/Y is swapped, this is intentional
+    if alignConfig.x then current:alignHorizontally(parent,
+        alignmentMapping[alignConfig.x.alignment] or alignConfig.x.alignment,
+        alignConfig.x.offset or 0)end
+    if alignConfig.y then current:alignVertically(parent,
+        alignmentMapping[alignConfig.y.alignment] or alignConfig.y.alignment,
+        alignConfig.y.offset or 0)end
+end
+
+local function alignmets(object, config)
+    if not config then return end
+    if config.align then applyAlignment(object, config.align) end
+    if config.parent then alignToParent(object, config.parent[1], config.parent) end
+end
+
+local Paint = function(screen, func) screen:setOnInit(JavaWrapper:methodToJavaAsync(func)) end --Only applies to screen and D2D
+
+Render.Tools.paragraphText = function(text, config)
+if type(text) ~= "string" and Settings['debug'] then Chat:log("Text is not a string") return {} end
+local lines, current, prevLine = {}, "", nil
+
+local function createLineConfig(Text)
+    local lineConfig = {
+        text = Text,
+        x = config.x,
+        x2 = config.width + 5,
+        color = config.color,
+        shadow = config.shadow,
+        scale = config.scale,
+        rotation = config.rotation,
+        align = config.align
+    }
+    
+    lineConfig.parent = #lines == 0
+        and config.parent
+        or {
+            prevLine,
+            y = {alignment = "under", offset = 2 * globalScale},
+            x = {alignment = "left"}
+           }
+    
+    table.insert(lines, lineConfig)
+    prevLine = lineConfig
+return lineConfig end
+
+
+for word in text:gmatch("%S+") do
+    local test = current == "" and word or current .. " " .. word
+    if Util.stringToText(test):getWidth() > config.width - (config.x or 0) then
+        createLineConfig(current)
+        current = word
+    else
+        current = test
+end end
+
+if current ~= "" then createLineConfig(current) end
+
+return lines
+end
+
+
+D2D.add = function(screen) return {
+line = function( config)
+    local x, y = config.x or 0, config.y or 0
+    local x2, y2 = config.x2 or x, config.y2 or y
+    
+    if not (x2 or y2) and Settings['debug'] then Chat:log("Line is missing a point") return nil end
+
+    local line = screen:addLine(x, y, x2, y2,
+        config.color or Colors.white,
+        config.thickness or 1,
+        config.rotation or 0
+    )
+    
+    line:setAlpha(config.alpha or 155)
+    alignmets(line, config)
+    return line
+end,
+
+
+rect = function(config)
+    local x, y = config.x or 0, config.y or 0
+    local width, height = config.width or 10, config.height or 10
+    
+    local scaledWidth = width * globalScale
+    local scaledHeight = height * globalScale
+    
+    local rect = screen:addRect(x, y, x + scaledWidth, y + scaledHeight,
+        config.color or Colors.white,
+        config.alpha or 100
+    )
+    
+    alignmets(rect, config)
+    
+    if config.border then
+        local createBorder = function()
+            local borderColor = config.border.color or config.color or Colors.white
+            local thickness = config.border.thickness or 0.5
+            
+            local lines = {
+                screen:addLine(rect:getX1(), rect:getY1(), rect:getX1() + scaledWidth, rect:getY1(), borderColor, thickness, 0),
+                screen:addLine(rect:getX1(), rect:getY1() + scaledHeight, rect:getX1() + scaledWidth, rect:getY1() + scaledHeight, borderColor, thickness, 0),
+                screen:addLine(rect:getX1(), rect:getY1(), rect:getX1(), rect:getY1() + scaledHeight, borderColor, thickness, 0),
+                screen:addLine(rect:getX1() + scaledWidth, rect:getY1(), rect:getX1() + scaledWidth, rect:getY1() + scaledHeight, borderColor, thickness, 0)
+            }
+            
+            local alignments = {
+                {x = {alignment = "center"}},
+                {x = {alignment = "center"}},
+                {x = {alignment = "left"}},
+                {x = {alignment = "right"}}
+            }
+            
+            for i, line in ipairs(lines) do
+                if config.parent then alignToParent(line, config.parent[1], config.parent) end
+                alignToParent(line, rect, alignments[i]) 
+            end
+            
+            return lines
+        end 
+        createBorder() 
+    end
+    return rect
+end,
+    
+   
+text = function(config)
+    local x, y = config.x or 0, config.y or 0
+    
+    local textObj = screen:addText(
+        config.text or "", x, y,
+        config.color or Colors.white, 
+        config.shadow or false, 
+        (config.scale or 1) * globalScale,
+        config.rotation or 0
+    )
+ 
+    alignmets(textObj, config)
+ 
+    if config.scaleText and config.width and textObj:getScaledWidth() > (config.width - x) then --used to make text smaller if needed
+        textObj:setScale((config.scale or 1) * (globalScale * 0.5) * ((config.width - x) / textObj:getScaledWidth())) end
+    return textObj
+end,
+  
+
+item = function(config)
+    local x, y = config.x or 0, config.y or 0
+    
+    local item = screen:addItem(x, y, config.itemStack or config.itemId)
+    item:setRotateCenter(true)
+
+    item:setScale((config.scale or 1) * globalScale)
+    item:setRotation(config.rotation or 0)
+    item:overlayVisible(config.itemStack and config.overlay or false)
+    
+    alignmets(item, config)
+    
+    return item
+end
+}
+end
+
+
+Screen.add = function(screen) return{
+    button = function(config)
+        local button = screen:addButton(
+        config.x or 0, config.y or 0,
+        config.width or 40, config.height or 20,
+            config.text or "",
+            JavaWrapper:methodToJavaAsync(function(button) config.func() end)
+        )
+        
+        if config.scaleToText then button:setWidth(button:getLabel():getWidth() + 10) end
+        if config.tooltip then button:addTooltip(Util.stringToText(config.tooltip)) end
+
+        alignmets(button,config)
+        return button
+    end,
+
+    slider = function(config)
+        local slider = screen:addSlider(
+            config.x or 0, config.y or 0, 
+            config.width or 150, config.height or 15,
+            0, --z index
+            config.text or "",
+            (config.value or 100) / 100, 
+            config.totalIncrements or 100,
+            JavaWrapper:methodToJavaAsync(function(slider)
+                config.func(slider:getValue() * 100)
+            end)
+        )
+
+        alignmets(slider, config)
+
+        local textOverlay = D2D.add(screen).text({
+            text = config.text or "",
+            scale = config.scale or 1,
+            shadow = true,
+            parent = {
+                slider,
+                x = {alignment = "center"}, 
+                y = {alignment = "center", offset = 1}
+            }
+        })
+
+       
+        return slider
+    end,
+
+    checkBox = function(config)
+        local layed
+
+        local function overlay(check)
+            local textOverlay = D2D.add(screen).text({
+                text = "§a✔",
+                x = config.x or 0,
+                y = config.y or 0,
+                scale = 1, 
+                shadow = true, 
+                element = {
+                    check,
+                    x = {alignment = "center", offset = 0}
+                }
+            })
+        end
+
+        local checkbox = screen:addCheckbox(
+            config.x or 0, (config.y or 0) -5,
+            config.width or 20, config.height or 20, 
+            config.text or "",
+            config.value or false,
+            JavaWrapper:methodToJavaAsync(function(checkbox)
+                if layed then layed:unregister() layed = nil end
+                config.func(checkbox:isChecked())
+            end)
+        )
+        
+        alignmets(checkbox, config)
+        return checkbox
+    end,
+
+    textInput = function(config)
+        local textInput = screen:addTextInput(
+            config.x or 0, config.y or 0, 
+            config.width or 40, config.height or 20, 
+            config.value or "",
+            JavaWrapper:methodToJavaAsync(function(textInput)
+                config.func(textInput)
+            end)
+        )
+        
+        if config.suggestions then textInput:setSuggestions(config.suggestions) end
+        if config.value then textInput:setText(config.value) end
+        if config.maxCharacters then textInput:setMaxLength(config.maxCharacters) end
+
+        if config.label then
+            local textOverlay = D2D.add(screen).text({
+                text = config.label, 
+                x = config.x or 0, 
+                y = config.y or 0, 
+                scale = 1, 
+                shadow = true, 
+                element = {
+                    textInput,
+                    x = {alignment = "leftOnright", offset = 3}, 
+                    y = {alignment = "center", offset = 1}
+                }
+            })
+        end
+
+        alignmets(textInput, config)
+        return textInput
+    end,
+
+    cyclingButton = function(config)
+        local startingValue = config.value or (config.options and config.options[1])
+        
+        local cyclingButton = screen:addCyclingButton(
+            config.x or 0, 
+            config.y or 0, 
+            config.width or 45, 
+            config.height or 20, 
+            0, 
+            config.options, 
+            config.options2 or config.options, 
+            startingValue, 
+            config.prefix or "",
+            JavaWrapper:methodToJavaAsync(function(cyclingButton) 
+                config.func(cyclingButton:getValue())
+                if config.scaleToText then cyclingButton:setWidth(cyclingButton:getLabel():getWidth() + 10) end
+            end)
+        )
+        
+        if config.scaleToText then cyclingButton:setWidth(cyclingButton:getLabel():getWidth() + 10) end
+
+        alignmets(cyclingButton, config)
+        return cyclingButton
+    end,
+
+    onClose = function(func) screen:setOnClose(JavaWrapper:methodToJavaAsync(function() func() end)) end
+} end
+
+-- D3D implementation
+D3D.add = function(draw3D) return {
+    block = function(BlockHelper,config)
+        local pos = BlockHelper:getBlockPos():toPos3D():add(0.5, config.yOffset or 0.5, 0.5)
+        local box = draw3D:addPoint(pos:getX(), config.y or pos:getY(), pos:getZ(), .51, config.color or Colors.blue)
+        box:setAlpha(config.transparency or 100)
+        box:setFillColor(config.fillColor or Colors.blue, config.filltransparency or 100) 
+        return box
+    end,
+
+    entityTrace = function(entity,config)
+        local entityTrace = draw3D:addEntityTraceLine(entity, config.color or Colors.white, config.alpha or 100,
+            config.yOffset or entity:getEyeHeight())--Might Error if theres no eye
+            --if config.entity then entity:setEntity(config.entity) end
+        return entityTrace
+    end,
+
+    tracePos = function(pos,config)
+        local traceLine
+        if type(config.pos) ~= "table" then
+            traceLine = draw3D:traceLineBuilder():pos(config.pos):color(config.color or Colors.white):buildAndAdd()
+        elseif config.x and config.y and config.z then
+            traceLine = draw3D:addTraceLine(config.x, config.y, config.z, config.color or Colors.white)
+        end
+            if config.alpha then traceLine:setAlpha(config.alpha) end
+        return traceLine
+    end,
+
+    point = function(cords,radius,config)
+        local point = draw3D:addPoint(
+            cords.x,
+            cords.y,
+            cords.z,
+            radius or 0.5,
+            config.color or Colors.white,
+            255,
+            config.cull or false
+        )
+        point:setColor(config.outlineColor or Colors.blue, config.outlineAlpha or 255)
+        point:setFillColor(config.color or Colors.blue, config.transparency or 100)
+        return point
+    end,
+
+    d2d = function(config)
+        local d2d = draw3D:surfaceBuilder():pos(config.x or 0, config.y or 0, config.z or 0):buildAndAdd()
+        
+        if config.text then
+            d2d:addText(config.text, 0, 0, config.textColor or Colors.white, config.shadow or false, config.scale or 0.0009, config.rotation or 0)
+        end
+        
+        local eventId = nil
+        
+        if config.entity then -- Still in progress
+            d2d:bindToEntity(config.entity)
+            d2d:setRotateToPlayer(config.rotateToPlayer ~= false)
+            d2d:setRotateCenter(config.rotateCenter ~= false)
+                   
+            eventId = JsMacros:on("Tick", JavaWrapper:methodToJavaAsync(function() --Change to Async
+                if d2d:getBoundEntity() then
+                    d2d:setRotations(0, d2d:getBoundEntity():getYaw() < 0 and -d2d:getBoundEntity():getYaw() or d2d:getBoundEntity():getYaw(), 0)
+                else
+                  
+                    if eventId then
+                        JsMacros:off("Tick", eventId)
+                        eventId = nil
+                    end
+                end
+            end))
+        end
+        
+        if config.block or config.pos then 
+            d2d:setPos(config.block or config.pos)
+        end
+    
+        if not config.offset then config.offset = {x = 0, y = 0, z = 0} end
+        
+        if d2d:getBoundEntity() then
+            d2d:setBoundOffset(
+                config.offset.x, 
+                (d2d:getBoundEntity():getEyePos():getY() - d2d:getBoundEntity():getY() + .5),
+                config.offset.z
+            )
+        end
+        
+        return d2d
+    end
+}
+end
+
+Screen.tools.buttonList = function(screenObject, buttonMap, config)
+config = config or {}
+local buttons = {}
+local prevButton = nil
+    
+Paint(screenObject, function()
+    local screen = Screen.add(screenObject)
+    for i, btn in ipairs(buttonMap) do
+        local setup = {
+            x = btn.x, y = btn.y,
+            width = btn.width or config.width,
+            height = btn.height or config.height,
+            text = btn.name or "Button",
+            tooltip = btn.tooltip,
+            scaleToText = btn.scaleToText or config.scaleToText,
+            func = btn.func or function() end
+        }
+        
+        if prevButton then
+            setup.parent = {
+                prevButton,
+                y = {alignment = "under", offset = btn.spacing or config.spacing or 5},
+                x = {alignment = "left"}
+            }
+        else setup.align = config.align end
+        
+        local button = screen.button(setup)
+        table.insert(buttons, button)
+        prevButton = button
+    end
+return buttons end)
+
+return buttons
+end
+    
+
+D2D.presets.title = function(title, subtitle, config)
+    config = config or {}
+    local Title = Hud:createDraw2D()
+    local d2d = D2D.add(Title)
+
+    Paint(Title,function()
+        local text = d2d.text({
+            text = title or "Welcome",
+            color = config.color or Colors.white,
+            scale = config.scale or 1.5,
+        
+            shadow = config.shadow ~= false,
+            align = {
+                x = {alignment = "center"},
+                y = {alignment = "top", offset = 10}
+            }
+        })
+        
+        local subtitleObj = nil
+        if subtitle then
+            subtitleObj = d2d.text({
+                text = subtitle,
+                color = config.subtitleColor or config.color or Colors.white,
+                scale = (config.subtitleScale or 0.8) * (config.scale or 1.5),
+                shadow = config.shadow ~= false,
+                parent = {
+                    text,
+                    x = {alignment = "center"},
+                    y = {alignment = "bottom", offset = 10}
+                }
+            })end
+        return {text = text, subtitle = subtitleObj}
+    end)
+
+    Title:register()
+    Client:waitTick(config and config.delay or 30)
+    Title:unregister()
+end
+
+
+D2D.presets.toast = function(title, text, config) --D2D.presets.toast('Hellow', 'This is a Toast')
+    config = config or {}
+    local position = config.position or 1
+    
+    local Toast = Hud:createDraw2D()
+    local d2d = D2D.add(Toast)
+    
+    Paint(Toast,function()
+        local box = d2d.rect({
+            y = 10 + ((position - 1) * 60 * globalScale),
+            width = 155, height = 50,
+        
+            color = Colors.black, alpha = 155, border = {},
+            align = {x = {alignment = 'right', offset = -20 * globalScale}}
+        })
+        
+        local titleText = d2d.text({
+            text = title or "Notification",
+            scale = 1,
+            shadow = true,
+
+            parent = {box, y = {alignment = "top", offset = 4 * globalScale}, x = {alignment = "left", offset = 4 * globalScale}}
+        })
+        
+        local textLines = Render.Tools.paragraphText(text or "", {
+            width = 240,
+            color = Colors.white,
+            scale = 0.6,
+            parent = {titleText, y = {alignment = "under", offset = 3 * globalScale}, x = {alignment = "left", offset = 1}}
+        })
+        
+        local createdTextObjects = {}
+        for i, line in ipairs(textLines) do
+            if line.text then
+                if line.parent and line.parent[1] == textLines[i-1] then
+                    line.parent[1] = createdTextObjects[i-1]
+                    end
+                createdTextObjects[i] = d2d.text(line)
+            end end
+
+        return {box = box, title = titleText}
+    end)
+    
+    Toast:register()
+    Client:waitTick(config and config.delay or 30)
+    Toast:unregister()
+end
+
+D2D.presets.welcome = function(text, config)
+    config = config or {}
+    local welcome = Hud:createDraw2D()
+    local d2d = D2D.add(welcome)
+    
+    Paint(welcome,function()
+        local color = config.color or Colors.white
+        local thickness = config.lineThickness or 0.75
+        
+        local titleText = d2d.text({
+            text = text or "Title",
+            color = color,
+            scale = 1.5,
+            align = {
+                x = {alignment = "center"},
+                y = {alignment = "top", offset = 9 * globalScale}
+            }
+        })
+        
+        local width = 264
+        
+        local topLine = d2d.line({
+            x2 = width,
+            color = color,
+            thickness = thickness,
+            alpha = 255,
+            parent = {
+                titleText,
+                x = {alignment = "center"},
+                y = {alignment = "top", offset = -2}
+            }
+        })
+        
+        -- Bottom horizontal line
+        local bottomLine = d2d.line({
+            x2 = width - 45,
+            color = color,
+            thickness = thickness,
+            alpha = 255,
+            parent = {
+                titleText,
+                x = {alignment = "center"},
+                y = {alignment = "bottom"}
+            }
+        })
+        
+        if not (bottomLine and topLine) then return nil end
+
+        -- Top left to Bottom left diagonal
+        d2d.line({
+            x = topLine:getX1(), y = topLine:getY1(),
+            x2 = bottomLine:getX1(), y2 = bottomLine:getY1(),
+            color = color,
+            thickness = thickness,
+            alpha = 255,
+        })
+        
+        -- Top right to Bottom right diagonal
+        d2d.line({
+            x = topLine:getX2(), y = topLine:getY2(),
+            x2 = bottomLine:getX2(), y2 = bottomLine:getY2(),
+            color = color,
+            thickness = thickness,
+            alpha = 255,
+        })
+        
+        return {text = titleText}
+    end)
+
+    welcome:register()
+    
+    Client:waitTick(config.delay or 30)
+    welcome:unregister()
+    
+    return welcome
+end
+
+
+
+
+Screen.presets.buttonListExample = function()
+  
+local buttonConfigs = {
+    {name = "Test", func = function() Chat:log('test') end},
+    {name = "Test 2", func = function() Chat:log('test 2') end, width = 120},
+    {name = "Longer Button Name", func = function() Chat:log('test 3') end, tooltip = "This is a tooltip"},
+}
+
+local myScreen = Hud:createScreen("Button List Example", false)
+local buttons = Screen.tools.buttonList(myScreen, buttonConfigs,{
+    spacing = 5,
+    scaleToText = true,
+    align = {
+        x = {alignment = "left"},
+        y = {alignment = "top", offset = 10}
+    }
+})
+
+Hud:openScreen(myScreen)
+
+end
+
+
+D3D.presets.highlight = function(blockPos, config) --D3D.presets.highlight({-2,100,-6})
+    config = config or {}
+    local draw = Hud:createDraw3D()
+    local d3d = D3D.add(draw)
+    
+    d3d.block(World:getBlock(blockPos[1], blockPos[2], blockPos[3]),{
+        color = config.color,
+        transparency = config.transparency or 100,
+        fillColor = config.fillColor,
+        filltransparency = config.filltransparency
+    })
+    
+    draw:register()
+    
+    return {remove = function() draw:unregister() end}
+end
+
+
+
+D3D.presets.entityNametag = function(entity, name, config) --D3D.presets.entityNametag(Player:rayTraceEntity(12), "Test",{scale = 0.005)
+    config = config or {}
+    local draw = Hud:createDraw3D()
+    local d3d = D3D.add(draw)
+    
+    -- Create a 3D surface
+    local surface = d3d.d2d({
+        entity = entity,
+        offset = {
+            x = config.offsetX or 0,
+            y = config.offsetY or 0,
+            z = config.offsetZ or 0
+        }
+    })
+    
+    -- Add D2D to the surface
+    local d2d = D2D.add(surface)
+    
+    if config.background then
+        local textWidth = Util.stringToText(name):getWidth() * (config.scale or 0.001)
+        d2d.rect({
+            x = -textWidth/2 - 0.01,
+            y = -0.005,
+            width = textWidth + 0.02,
+            height = 0.015,
+            color = config.backgroundColor or Colors.black,
+            alpha = config.backgroundAlpha or 120
+        })
+    end
+    
+    d2d.text({
+        text = name,
+        x = 0,
+        y = 0,
+        color = config.color or Colors.white,
+        scale = config.scale or 0.001,
+        rotation = config.rotation or 0,
+        align = {
+            x = {alignment = "center"},
+            y = {alignment = "center"}
+        }
+    })
+    
+    draw:register()
+    
+    return {remove = function() draw:unregister() end}
+end
+
+
+D2D.presets.consoleWindow = function(title, logData, config)
+    config = config or {}
+    local console = Hud:createDraw2D()
+    local d2d = D2D.add(console)
+    
+    Paint(console, function()
+        local box = d2d.rect({
+            width = 145, height = 100,
+            color = config.color or Colors.black, alpha = 100, border = {}, --Might allow custom Colors
+            align = {x = {alignment = "left", offset = 10}, y = {alignment = "top", offset = 8}}
+        })
+        
+        local titleRect = d2d.rect({
+            width = 145, height = 12,
+            color = config.color or Colors.black, alpha = 150,
+            parent = {box, x = {alignment = "center"}, y = {alignment = "top"}}
+        })
+        
+        local titleText = d2d.text({
+            text = title or "Fabric Console", color = config.titleColor or Colors.white,
+            scale =  0.6, shadow = true,
+            parent = {titleRect, x = {alignment = "center"}, y = {alignment = "center"}}
+        })
+        
+        local separatorLine = d2d.line({
+            x2 = box:getWidth() - 3, color = Colors.white,
+            thickness = config.lineThickness or 0.5, alpha = 0,
+            parent = {titleRect, y = {alignment = "bottom"}, x = {alignment = "center"}}
+        })
+        
+        local logObjects = {}
+        local prevElement = separatorLine
+        local logs = logData or {}
+        local maxLines = 15
+        local startIndex = #logs > maxLines and (#logs - maxLines + 1) or 1
+        
+        for i = startIndex, #logs do
+            local log = logs[i]
+            local logText = type(log) == "table" and log.text or log
+            
+            prevElement = d2d.text({
+                text = logText,
+                color = Colors.white,
+                scale =  0.5,
+                shadow = true,
+                parent = {
+                    prevElement,
+                    y = {alignment = "under", offset = 3},
+                    x = {alignment = "left", offset = (prevElement == separatorLine) and 3 or 0}
+                }
+            })
+            
+            table.insert(logObjects, prevElement)
+        end
+        
+        return {box = box, titleBg = titleRect, title = titleText, logs = logObjects}
+    end)
+    
+    console:register()
+    
+    return {
+        draw = console,
+        remove = function() console:unregister() end,
+        update = function(newLogs)
+            logData = newLogs
+            console:unregister()
+            console:register()
+        end
+    }
+end
+
+Screen.presets.renderSettings = function()
+    local settingsScreen = Hud:createScreen("Settings", false)
+    local screen = Screen.add(settingsScreen)
+    local d2d = D2D.add(settingsScreen)
+    
+    local currentValues = {}
+    local currentSettingName = nil
+    
+    Paint(settingsScreen, function()
+        local addonsRect = d2d.rect({
+            width = 145, height = 300,
+            color = Colors.darkgray, alpha = 100, 
+            border = { color = Colors.white, thickness = 0.5 },
+            align = { x = {alignment = "right", offset = -10}, y = {alignment = "top", offset = 70} }
+        })
+        
+        -- Headers
+        d2d.text({
+            text = "Addons", scale = 1.2, shadow = true,
+            parent = { addonsRect, x = {alignment = "center"}, y = {alignment = "top", offset = -25} }
+        })
+        
+        -- Settings container that will hold all the settings controls
+        local settingsContainer = d2d.rect({
+            width = 300, height = 300,
+            color = Colors.darkgray, alpha = 75,
+            border = { color = Colors.white, thickness = 0.5 },
+            align = { x = {alignment = "left", offset = 20}, y = {alignment = "top", offset = 70} }
+        })
+        
+
+        -- Status indicator
+        local statusText = d2d.text({
+            text = "Settings auto-save when closing", scale = 0.7, color = Colors.green, shadow = true,
+            align = { x = {alignment = "left", offset = 20}, y = {alignment = "bottom", offset = -10} }
+        })
+        
+        
+        local prevButton = nil
+        local settingsPath = JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/"
+        
+        for i, file in pairs(FS:list(settingsPath)) do
+            local name = file:gsub("%.lua$", "") or ""
+            if name and #name > 0 then
+                -- Button configuration
+                local btnConfig = {
+                    text = name, width = 125,
+                    func = function()
+                     
+                        if name and next(currentValues) then 
+                            Injected.settings.manager(name).save(currentValues)
+    
+                        end
+                        
+                        -- Reset and reload screen
+                        settingsScreen:reloadScreen()
+                        Client:waitTick(5)
+                        currentValues = {}
+                        
+                        -- Render settings panel
+                        local settings = Injected.settings.get(name)
+                        if settings then
+                            renderSettingsPanel(settings, name)
+                        end
+                    end,
+                    parent = {
+                        prevButton or addonsRect,
+                        y = {alignment = prevButton and "under" or "top", offset = prevButton and 10 or 10},
+                        x = {alignment = "center"}
+                    }
+                }
+                
+                prevButton = screen.button(btnConfig)
+            end
+        end
+        
+        -- Folder access button
+        screen.button({
+            text = "Settings Folder", scaleToText = true,
+            align = { x = {alignment = "right", offset = -10}, y = {alignment = "top", offset = 10} },
+            func = function() Utils:openFile(settingsPath) end
+        })
+        
+        -- Function to render the settings panel for selected addon
+        function renderSettingsPanel(settings, name)
+          
+            local settingsTitleText = d2d.text({
+                text = name .. " Settings",
+                scale = 1.2, 
+                shadow = true, 
+                color = Colors.green,
+                parent = { settingsContainer, x = {alignment = "center"}, y = {alignment = "top", offset = -25} }
+            })
+            
+            local yOffset = 20
+            
+            for key, setting in pairs(settings) do
+                if key ~= "Info" then
+             
+                    local settingLabel = d2d.text({
+                        text = key, color = Colors.white, shadow = true, scale = 0.8,
+                        parent = { settingsContainer, x = {alignment = "left", offset = 15}, y = {alignment = "top", offset = yOffset} }
+                    })
+                    
+                    yOffset = yOffset + 30
+                    currentValues[key] = setting.value
+                    
+                    -- Control config
+                    local renderConfig = {
+                        value = setting.value,
+                        func = function(value) 
+                            currentValues[key] = value
+                        end,
+                        parent = { settingLabel, y = {alignment = "under", offset = 5}, x = {alignment = "left", offset = 10} }
+                    }
+                    
+                    -- Copy render properties
+                    for k, v in pairs(setting.Render) do
+                        if k ~= "func" then renderConfig[k] = v end
+                    end
+                    
+                    if setting.Render.type == "cyclingButton" then
+                        renderConfig.scaleToText = true end
+
+                    if setting.Render.type == "slider" then
+                        screen.slider(renderConfig)
+                    elseif setting.Render.type == "checkbox" then
+                        screen.checkBox(renderConfig)
+                    elseif setting.Render.type == "textInput" then
+                        screen.textInput(renderConfig)
+                    elseif setting.Render.type == "cyclingButton" then
+                        screen.cyclingButton(renderConfig)
+                    end
+                end
+            end
+        end
+    end)
+    
+    -- Auto-save on close
+    screen.onClose(function()
+        if currentSettingName and next(currentValues) then
+            Injected.settings.manager(currentSettingName).save(currentValues)
+        end
+    end)
+    
+    Hud:openScreen(settingsScreen)
+    return settingsScreen
+end
+
+Screen.presets.renderSettings()
+
+return {
+    D2D = D2D.presets,
+    Screen = Screen.presets,
+    D3D = D3D.presets,
+    Colors = Colors
+}
