@@ -114,6 +114,14 @@ Settings.Values = Secure("Getting Value", function(fileName)
     return values
 end)
 
+Settings.Server = Secure("Loading Setting", function()
+for i, file in pairs(FS:list(JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/")) do
+    local serverName = file:gsub("%.lua$", "")
+    if serverName and string.find(World:getCurrentServerAddress(), serverName, 1, true) then
+        return Settings.Values(file)
+    end end
+end)
+
 Settings.create = function(key,parent)
 local button = function(Tbl)
     parent[key] ={Render = {type = 'button',width = Tbl.width,height = Tbl.height,
@@ -174,7 +182,5 @@ version = function()
 
 return{save = save,get = get}end
 
+
 return Settings
-
-
-
