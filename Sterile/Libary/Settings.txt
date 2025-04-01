@@ -118,7 +118,7 @@ Settings.Server = Secure("Loading Setting", function()
 for i, file in pairs(FS:list(JsMacros:getConfig().configFolder:getPath().."/Plugin-Settings/")) do
     local serverName = file:gsub("%.lua$", "")
     if serverName and string.find(World:getCurrentServerAddress(), serverName, 1, true) then
-        return Settings.Values(file)
+        return Settings.Values(serverName)
     end end
 end)
 
