@@ -40,10 +40,10 @@ local Injected = {
     settings = InjectFile("https://raw.githubusercontent.com/Ghostmode65/mclib/refs/heads/main/Sterile/Libary/Settings.txt") or nil
 }
 
-local Settings = Injected and Injected.settings and Injected.settings.get('Fabric Refresher') or 
+local Settings = Injected and Injected.settings and Injected.settings.Values('Fabric Refresher') or 
 {
-    ['Log Method'] = {value = 'Chat'},
-    ['debug'] = {value = false},
+    ['Log Method'] = 'Chat',
+    ['debug'] = false,
 }
 
 
@@ -1011,6 +1011,7 @@ Screen.presets.renderSettings = function()
     return settingsScreen
 end
 
+Screen.presets.renderSettings()
 
 return {
     D2D = D2D.presets,

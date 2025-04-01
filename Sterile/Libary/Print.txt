@@ -59,11 +59,11 @@ local Print =
 }
 
 
-local Settings = Injected and Injected.settings and Injected.settings.get('Fabric Refresher') or
+local Settings = Injected and Injected.settings and Injected.settings.Values('Fabric Refresher') or
 {
-    ['Log Method'] = {value = 'Chat'},
-    ['debug'] = {value = false},
-    ['Time Stamp'] = {value = false}
+    ['Log Method'] = 'Chat',
+    ['debug'] = false,
+    ['Time Stamp'] = false
 }
 
 local function formatMessage(text, header, textColor)
@@ -75,9 +75,9 @@ end
 
 Print.log = function(text, header, options)
     options = options or {}
-    local method = options.method or ((Settings['Log Method'] and Settings['Log Method'].value) or 'Chat')
+    local method = options.method or ((Settings['Log Method']) or 'Chat')
     local color = options.color
-    local showTimestamp = options.timestamp or (Settings['Time Stamp'] and Settings['Time Stamp'].value or false)
+    local showTimestamp = options.timestamp or (Settings['Time Stamp'] or false)
     
     local message = (showTimestamp and "[" .. os.date("%H:%M:%S | ") .. "] " or "") .. formatMessage(text, header, color)
     table.insert(Print.Data.Logs, "[" .. os.date("%H:%M:%S | ") .. "] " .. formatMessage(text, header, color))
@@ -116,13 +116,13 @@ Print.Print = {
         Print.log(text, header or (Print.Colors.green .. "Console:"), options or {}) end,
     
     log = function(text, options)
-        if A_L and (A_L.value == "logs" or A_L.value == "pcall") then
+        if A_L and (A_L == "logs" or A_L == "pcall") then
             Print.log(text, Print.Colors.white .. "Log:", options or {})
         end
     end,
     
     debug = function(text, options)
-        if Settings['Debug Mode'] and Settings['Debug Mode'].value then
+        if Settings['Debug Mode'] and Settings['Debug Mode'] then
             return Print.log(text, Print.Colors.purple .. "Debug:", options or {})
         end
     end,
