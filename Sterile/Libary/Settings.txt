@@ -105,12 +105,21 @@ Settings.get = Secure("Loading Setting", function(fileName)
     if mainTable then return mainTable["Settings"] else return nil end
 end)
 
+
+Settings.Values = Secure("Getting Value", function(fileName)
+    local values = {}
+    for key, value in pairs(Settings.get(fileName)) do
+        values[key] = value.value
+    end
+    return values
+end)
+
 Settings.create = function(key,parent)
 local button = function(Tbl)
     parent[key] ={Render = {type = 'button',width = Tbl.width,height = Tbl.height,
         text = Tbl.text,func = Tbl.func or ""},value = Tbl.value}
     end
-    
+
 local slider = function(Tbl)
     parent[key] ={Render = {type = 'slider',width = Tbl.width,height = Tbl.height,
         text = Tbl.text,func = Tbl.func or ""},value = Tbl.value}
@@ -166,3 +175,6 @@ version = function()
 return{save = save,get = get}end
 
 return Settings
+
+
+
