@@ -108,6 +108,7 @@ end)
 
 Settings.Values = Secure("Getting Value", function(fileName)
     local values = {}
+    if not Settings.get(fileName) then return nil end
     for key, value in pairs(Settings.get(fileName)) do
         values[key] = value.value
     end
@@ -181,6 +182,5 @@ version = function()
 }
 
 return{save = save,get = get}end
-
 
 return Settings
