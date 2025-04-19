@@ -1013,6 +1013,7 @@ end
 
 return {
     add = {D2D = D2D.add, Screen = Screen.add, D3D = D3D.add},
+    tools = {screen = Screen.tools},
     D2D = D2D.presets,
     Screen = Screen.presets,
     D3D = D3D.presets,
