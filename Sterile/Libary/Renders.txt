@@ -120,7 +120,9 @@ local function alignmets(object, config)
     if config.parent then alignToParent(object, config.parent[1], config.parent) end
 end
 
-local Paint = function(screen, func) screen:setOnInit(JavaWrapper:methodToJavaAsync(func)) end --Only applies to screen and D2D
+local Paint = function(screen, func,add) if add then func() else screen:setOnInit(JavaWrapper:methodToJavaAsync(func)) end end --Only applies to screen and D2D
+
+
 
 Render.Tools.paragraphText = function(text, config)
 if type(text) ~= "string" and Settings['debug'] then Chat:log("Text is not a string") return {} end
@@ -496,7 +498,7 @@ D3D.add = function(draw3D) return {
 }
 end
 
-Screen.tools.buttonList = function(screenObject, buttonMap, config)
+Screen.tools.buttonList = function(screenObject, buttonMap, config,add)
 config = config or {}
 local buttons = {}
 local prevButton = nil
@@ -504,6 +506,7 @@ local prevButton = nil
 Paint(screenObject, function()
     local screen = Screen.add(screenObject)
     for i, btn in ipairs(buttonMap) do
+
         local setup = {
             x = btn.x, y = btn.y,
             width = btn.width or config.width,
@@ -526,7 +529,7 @@ Paint(screenObject, function()
         table.insert(buttons, button)
         prevButton = button
     end
-return buttons end)
+return buttons end,add or false)
 
 return buttons
 end
@@ -696,8 +699,6 @@ D2D.presets.welcome = function(text, config)
     
     return welcome
 end
-
-
 
 
 Screen.presets.buttonListExample = function()
@@ -1019,7 +1020,4 @@ return {
     D3D = D3D.presets,
     Colors = Colors
 }
-
-
-
 
