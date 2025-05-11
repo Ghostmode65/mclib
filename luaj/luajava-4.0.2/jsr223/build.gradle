@@ -1,0 +1,71 @@
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'jacoco'
+}
+
+repositories {
+    mavenCentral()
+}
+
+group = rootProject.group
+version = rootProject.version
+
+dependencies {
+    api project(':luajava')
+    compileOnly project(':lua51')
+    compileOnly project(':lua52')
+    compileOnly project(':lua53')
+    compileOnly project(':lua54')
+    compileOnly project(':luajit')
+    testImplementation project(':lua51')
+    testImplementation project(':lua52')
+    testImplementation project(':lua53')
+    testImplementation project(':lua54')
+    testImplementation project(':luajit')
+    testImplementation project(path: ':lua51', configuration: 'desktopNatives')
+    testImplementation project(path: ':lua52', configuration: 'desktopNatives')
+    testImplementation project(path: ':lua53', configuration: 'desktopNatives')
+    testImplementation project(path: ':lua54', configuration: 'desktopNatives')
+    testImplementation project(path: ':luajit', configuration: 'desktopNatives')
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+}
+
+tasks.withType(JavaCompile) {
+    options.deprecation = true
+}
+
+tasks.named('jar') {
+    manifest {
+        attributes('Automatic-Module-Name': 'party.iroiro.jsr223lua')
+    }
+}
+
+test {
+    useJUnitPlatform()
+
+    jacoco {
+        destinationFile = buildDir.toPath().resolve('jacoco/test.exec').toFile()
+    }
+}
+
+jacocoTestReport {
+    dependsOn fileTree(buildDir.absolutePath).include('jacoco/*.exec')
+
+    executionData.setFrom(fileTree(buildDir.absolutePath).include('jacoco/*.exec'))
+
+    reports {
+        xml.enabled true
+        html.enabled true
+        csv.enabled false
+        xml.destination file("${buildDir}/reports/jacoco/report.xml")
+    }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: '**/party/iroiro/luajava/util/**')
+        }))
+    }
+}
