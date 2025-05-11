@@ -1,0 +1,28 @@
+# gradle
+
+.gradle/
+build/
+out/
+build/classes/
+
+# idea
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# vscode
+
+libs/jsmacros*
+.settings/
+.vscode/
+bin/
+.classpath
+.project
+
+# fabric
+
+run/
+logs/
+*.launch
