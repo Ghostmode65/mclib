@@ -7,6 +7,9 @@ import xyz.wagyourtail.jsmacros.core.language.BaseScriptContext;
 import java.io.File;
 
 public class LuajScriptContext extends BaseScriptContext<Lua> {
+    
+    private boolean closed = false;
+    
     public LuajScriptContext(BaseEvent event, File file) {
         super(event, file);
     }
@@ -17,15 +20,30 @@ public class LuajScriptContext extends BaseScriptContext<Lua> {
     }
 
     @Override
-    public void closeContext() {
-        Lua lua = getContext();
-        if (lua != null) {
-            try {
-                lua.close();
-            } catch (Exception e) {
-                e.printStackTrace();
+    public synchronized void closeContext() {
+        // Prevent double closing
+        if (!closed) {
+            closed = true;
+            
+            Lua lua = getContext();
+            if (lua != null) {
+                try {
+                    lua.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
+            super.closeContext();
         }
-        super.closeContext();
+    }
+    
+    @Override
+    public synchronized void setContext(Lua context) {
+        super.setContext(context);
+    }
+    
+    @Override
+    public synchronized Lua getContext() {
+        return super.getContext();
     }
 }

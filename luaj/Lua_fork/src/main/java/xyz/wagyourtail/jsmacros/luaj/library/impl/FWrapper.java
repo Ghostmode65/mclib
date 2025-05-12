@@ -3,7 +3,6 @@ package xyz.wagyourtail.jsmacros.luaj.library.impl;
 import party.iroiro.luajava.Lua;
 import party.iroiro.luajava.value.LuaFunction;
 import party.iroiro.luajava.value.LuaValue;
-import party.iroiro.luajava.AbstractLua;
 
 import xyz.wagyourtail.jsmacros.core.Core;
 import xyz.wagyourtail.jsmacros.core.MethodWrapper;
@@ -14,10 +13,13 @@ import xyz.wagyourtail.jsmacros.core.library.PerExecLanguageLibrary;
 import xyz.wagyourtail.jsmacros.luaj.language.impl.LuajLanguageDefinition;
 import xyz.wagyourtail.jsmacros.luaj.language.impl.LuajScriptContext;
 
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 @Library(value = "JavaWrapper", languages = LuajLanguageDefinition.class)
-public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, LuajScriptContext> implements IFWrapper<LuaFunction> {
+public class FWrapper extends PerExecLanguageLibrary<Lua, LuajScriptContext> implements IFWrapper<LuaFunction> {
+
+    private final ReentrantLock luaLock = new ReentrantLock();
 
     public FWrapper(LuajScriptContext context, Class language) {
         super(context, language);
@@ -25,25 +27,37 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
 
     private LuaValue callFunction(LuaFunction fn, Object... args) {
         Lua lua = ctx.getContext();
+        if (lua == null) {
+            return null;
+        }
         
+        luaLock.lock();
         try {
             lua.checkStack(args.length + 2); 
+            
+            // Push the function onto stack
             ((LuaValue)fn).push(lua);
             
+            // Push all arguments
             for (Object arg : args) {
                 lua.push(arg, Lua.Conversion.SEMI);
             }
             
+            // Call with proper error handling
             lua.pCall(args.length, 1);
             
+            // Get return value if any
             if (lua.getTop() > 0) {
                 return lua.get();
             }
+            return null;
         } catch (Exception e) {
-            e.printStackTrace();
+            // Handle error but don't throw from here
+            Core.getInstance().profile.logError(e);
+            return null;
+        } finally {
+            luaLock.unlock();
         }
-        
-        return null;
     }
 
     @Override
@@ -92,6 +106,8 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
                     Core.getInstance().profile.joinedThreadStack.remove(Thread.currentThread());
                 }
             });
+            
+            th.setName("LuaJava-Async-" + System.currentTimeMillis());
             th.start();
         }
 
@@ -148,9 +164,10 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         public boolean test(T t) {
             return internal_apply(() -> {
                 LuaValue result = callFunction(fn, t);
-                return result != null && 
-                       result.type() == AbstractLua.LuaType.BOOLEAN && 
-                       result.toBoolean();
+                if (result == null) {
+                    return false;
+                }
+                return result.toBoolean();
             });
         }
 
@@ -158,9 +175,10 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         public boolean test(T t, U u) {
             return internal_apply(() -> {
                 LuaValue result = callFunction(fn, t, u);
-                return result != null && 
-                       result.type() == AbstractLua.LuaType.BOOLEAN && 
-                       result.toBoolean();
+                if (result == null) {
+                    return false;
+                }
+                return result.toBoolean();
             });
         }
 
@@ -175,7 +193,10 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         public int compare(T o1, T o2) {
             return internal_apply(() -> {
                 LuaValue result = callFunction(fn, o1, o2);
-                return result != null ? (int) result.toNumber() : 0;
+                if (result == null) {
+                    return 0;
+                }
+                return (int) result.toNumber();
             });
         }
 

@@ -14,11 +14,12 @@ import xyz.wagyourtail.jsmacros.luaj.language.impl.LuajLanguageDefinition;
 import xyz.wagyourtail.jsmacros.luaj.library.impl.FWrapper;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.Set;
 
 public class LuajExtension implements Extension {
 
-    LuajLanguageDefinition languageDescription;
+    private LuajLanguageDefinition languageDefinition;
 
     @Override
     public void init() {
@@ -28,7 +29,7 @@ public class LuajExtension implements Extension {
             throw new RuntimeException(e);
         }
     
-        // pre-init Lua
+        // pre-init Lua in a separate thread to avoid blocking
         Thread t = new Thread(() -> {
             try {
                 try (Lua lua = new Lua54()) {
@@ -40,6 +41,7 @@ public class LuajExtension implements Extension {
             }
         });
         
+        t.setName("LuaJava-Preload");
         t.start();
     }
 
@@ -72,13 +74,18 @@ public class LuajExtension implements Extension {
 
     @Override
     public BaseLanguage<?, ?> getLanguage(Core<?, ?> core) {
-        if (languageDescription == null) {
-            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-            Thread.currentThread().setContextClassLoader(LuajLanguageDefinition.class.getClassLoader());
-            languageDescription = new LuajLanguageDefinition(this, core);
-            Thread.currentThread().setContextClassLoader(classLoader);
+        if (languageDefinition == null) {
+            ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+            try {
+                // Ensure the correct classloader is used
+                Thread.currentThread().setContextClassLoader(LuajLanguageDefinition.class.getClassLoader());
+                languageDefinition = new LuajLanguageDefinition(this, core);
+            } finally {
+                // Always restore the original classloader
+                Thread.currentThread().setContextClassLoader(originalClassLoader);
+            }
         }
-        return languageDescription;
+        return languageDefinition;
     }
 
     @Override
@@ -103,13 +110,13 @@ public class LuajExtension implements Extension {
                     try {
                         line = Integer.parseInt(parts[1].trim());
                     } catch (NumberFormatException e) {
-
+                        // Parse failed, keep default -1
                     }
                 }
             }
             
             BaseWrappedException.SourceLocation loc = null;
-            if (file != null) {
+            if (file != null && file.exists()) {
                 loc = new BaseWrappedException.GuestLocation(file, -1, -1, line, -1);
             }
             
@@ -127,5 +134,13 @@ public class LuajExtension implements Extension {
     @Override
     public boolean isGuestObject(Object o) {
         return o instanceof LuaValue;
+    }
+    
+    // The getDependencies method is removed since it's not part of the Extension interface
+
+    public void onClose() {
+        if (languageDefinition != null) {
+            languageDefinition.onClose();
+        }
     }
 }
