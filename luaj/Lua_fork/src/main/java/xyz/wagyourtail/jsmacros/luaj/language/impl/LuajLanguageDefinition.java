@@ -70,8 +70,10 @@ public class LuajLanguageDefinition extends BaseLanguage<Lua, LuajScriptContext>
       
             String content = new String(Files.readAllBytes(ctx.getCtx().getFile().toPath()), StandardCharsets.UTF_8);
             ByteBuffer buffer = ByteBuffer.wrap(content.getBytes(StandardCharsets.UTF_8));
-            lua.load(buffer, scriptPath);
-            lua.pCall(0, Lua.LUA_MULTRET);
+
+            String scriptName = "string_chunk"; // Use a default name for inline scripts
+            lua.load(buffer, scriptName);
+            lua.pCall(0, -1);
         });
     }
 
@@ -83,8 +85,9 @@ public class LuajLanguageDefinition extends BaseLanguage<Lua, LuajScriptContext>
             lua.set("context", ctx);
             
             ByteBuffer buffer = ByteBuffer.wrap(script.getBytes(StandardCharsets.UTF_8));
-            lua.load(buffer, scriptPath);
-            lua.call(0, Lua54Consts.LUA_MULTRET);
+            String scriptName = "Lua_string";
+            lua.load(buffer, scriptName);
+            lua.pCall(0, -1);
         });
     }
     
