@@ -2,7 +2,10 @@ package xyz.wagyourtail.jsmacros.luaj.language.impl;
 
 import party.iroiro.luajava.Lua;
 import party.iroiro.luajava.lua54.Lua54;
+import party.iroiro.luajava.lua54.Lua54Consts;
 import party.iroiro.luajava.value.LuaValue;
+
+
 import xyz.wagyourtail.jsmacros.core.Core;
 import xyz.wagyourtail.jsmacros.core.config.ScriptTrigger;
 import xyz.wagyourtail.jsmacros.core.event.BaseEvent;
@@ -13,6 +16,8 @@ import xyz.wagyourtail.jsmacros.luaj.LuajExtension;
 import xyz.wagyourtail.jsmacros.luaj.config.LuajConfig;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 public class LuajLanguageDefinition extends BaseLanguage<Lua, LuajScriptContext> {
@@ -62,8 +67,11 @@ public class LuajLanguageDefinition extends BaseLanguage<Lua, LuajScriptContext>
             retrievePerExecLibs(ctx.getCtx()).forEach((name, lib) -> lua.set(name, lib));
             
             String scriptPath = ctx.getCtx().getFile().getCanonicalPath();
-            // Replace loadFile and pcall with doFile
-            lua.doFile(scriptPath);
+      
+            String content = new String(Files.readAllBytes(ctx.getCtx().getFile().toPath()), StandardCharsets.UTF_8);
+            ByteBuffer buffer = ByteBuffer.wrap(content.getBytes(StandardCharsets.UTF_8));
+            lua.load(buffer, scriptPath);
+            lua.pCall(0, Lua.LUA_MULTRET);
         });
     }
 
@@ -74,9 +82,9 @@ public class LuajLanguageDefinition extends BaseLanguage<Lua, LuajScriptContext>
             lua.set("file", ctx.getCtx().getFile());
             lua.set("context", ctx);
             
-            // Replace load and pcall with eval or load+call
-            lua.load(script, "script");
-            lua.call(0, 0);
+            ByteBuffer buffer = ByteBuffer.wrap(script.getBytes(StandardCharsets.UTF_8));
+            lua.load(buffer, scriptPath);
+            lua.call(0, Lua54Consts.LUA_MULTRET);
         });
     }
     
@@ -89,7 +97,7 @@ public class LuajLanguageDefinition extends BaseLanguage<Lua, LuajScriptContext>
         void accept(Lua lua) throws Exception;
     }
     
-    @Override
+    // Method to be called on close to clean up resources
     public void onClose() {
         if (globalLua != null) {
             try {
