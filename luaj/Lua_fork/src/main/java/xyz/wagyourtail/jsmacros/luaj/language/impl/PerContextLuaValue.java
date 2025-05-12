@@ -48,17 +48,14 @@ public class PerContextLuaValue {
         return getForCurrentContext().toNumber();
     }
     
-    public LuaValue call(Object... args) {
-        LuaValue func = getForCurrentContext();
-        if (func != null && isFunction(func)) {
-            BaseScriptContext<?> ctx = getCurrentContext();
-            if (ctx.getContext() instanceof Lua) {
-                Lua lua = (Lua) ctx.getContext();
-                return func.call(lua, args);
-            }
-        }
-        return null;
+   public LuaValue call(Object... args) {
+    LuaValue func = getForCurrentContext();
+    if (func != null) {
+        Lua lua = (Lua)getCurrentContext().getContext();
+        return func.call(lua, args);
     }
+    return null;
+}
     
     // Type checking utility methods
     public boolean isBoolean(LuaValue value) {

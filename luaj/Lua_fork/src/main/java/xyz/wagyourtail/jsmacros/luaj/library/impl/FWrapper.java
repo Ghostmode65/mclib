@@ -92,7 +92,7 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         public void accept(T t) {
             internal_accept(() -> {
                 Lua lua = ctx.getContext();
-                fn.call(lua, t instanceof LuaValue ? (LuaValue)t : null);
+                fn.call(lua, t);
             }, await);
         }
 
@@ -100,15 +100,15 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         public void accept(T t, U u) {
             internal_accept(() -> {
                 Lua lua = ctx.getContext();
-                fn.call(lua, t instanceof LuaValue ? (LuaValue)t : null, 
-                            u instanceof LuaValue ? (LuaValue)u : null);
+                fn.call(lua, t, u);
             }, await);
         }
 
         @Override
         public R apply(T t) {
             return internal_apply(() -> {
-                LuaValue result = fn.call(t);
+                Lua lua = ctx.getContext();
+                LuaValue result = fn.call(lua, t);
                 return (R) result.toJavaObject();
             });
         }
@@ -116,7 +116,8 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         @Override
         public R apply(T t, U u) {
             return internal_apply(() -> {
-                LuaValue result = fn.call(t, u);
+                Lua lua = ctx.getContext();
+                LuaValue result = fn.call(lua, t, u);
                 return (R) result.toJavaObject();
             });
         }
@@ -124,16 +125,19 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         @Override
         public boolean test(T t) {
             return internal_apply(() -> {
-                LuaValue result = fn.call(t);
-                return result.isBoolean() && result.toBoolean();
+                Lua lua = ctx.getContext();
+                LuaValue result = fn.call(lua, t);
+                // Replace isBoolean with a type check
+                return result.isOfType(LuaValue.LuaType.BOOLEAN) && result.toBoolean();
             });
         }
 
         @Override
         public boolean test(T t, U u) {
             return internal_apply(() -> {
-                LuaValue result = fn.call(t, u);
-                return result.isBoolean() && result.toBoolean();
+                Lua lua = ctx.getContext();
+                LuaValue result = fn.call(lua, t, u);
+                return result.isOfType(LuaValue.LuaType.BOOLEAN) && result.toBoolean();
             });
         }
 
@@ -148,7 +152,8 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         @Override
         public int compare(T o1, T o2) {
             return internal_apply(() -> {
-                LuaValue result = fn.call(o1, o2);
+                Lua lua = ctx.getContext();
+                LuaValue result = fn.call(lua, o1, o2);
                 return (int) result.toNumber();
             });
         }
@@ -156,7 +161,8 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         @Override
         public R get() {
             return internal_apply(() -> {
-                LuaValue result = fn.call();
+                Lua lua = ctx.getContext();
+                LuaValue result = fn.call(lua);
                 return (R) result.toJavaObject();
             });
         }
