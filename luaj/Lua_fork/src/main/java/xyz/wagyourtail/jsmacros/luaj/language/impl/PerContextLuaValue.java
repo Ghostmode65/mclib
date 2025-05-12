@@ -19,7 +19,7 @@ public class PerContextLuaValue {
 
     public LuaValue getForCurrentContext() {
         BaseScriptContext<?> ctx = getCurrentContext();
-        return instances.computeIfAbsent(ctx, c -> LuaValue.NIL);
+        return instances.computeIfAbsent(ctx, c -> null);
     }
     
     private BaseScriptContext<?> getCurrentContext() {
@@ -38,16 +38,23 @@ public class PerContextLuaValue {
     }
     
     public boolean asBoolean() {
-        return getForCurrentContext().isBoolean() && getForCurrentContext().toBoolean();
+      return getForCurrentContext() != null && 
+       getForCurrentContext().isBoolean() && 
+       getForCurrentContext().toBoolean();
     }
     
     public double asNumber() {
         return getForCurrentContext().toNumber();
     }
     
-    public LuaValue call(Object... args) {
-        return getForCurrentContext().call(args);
+  public LuaValue call(Object... args) {
+    LuaValue func = getForCurrentContext();
+    if (func != null) {
+        Lua lua = getCurrentContext().getContext();
+        return func.call(lua, args);
     }
+    return null;
+}
     
     //Custom helper Functions
 }

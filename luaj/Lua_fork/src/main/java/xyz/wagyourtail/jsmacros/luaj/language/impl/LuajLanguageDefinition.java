@@ -63,8 +63,7 @@ public class LuajLanguageDefinition extends BaseLanguage<Lua, LuajScriptContext>
             retrievePerExecLibs(ctx.getCtx()).forEach((name, lib) -> lua.set(name, lib));
             
             String scriptPath = ctx.getCtx().getFile().getCanonicalPath();
-            lua.loadFile(scriptPath);
-            lua.call(0, 0);
+            lua.doFile(scriptPath);
         });
     }
 
