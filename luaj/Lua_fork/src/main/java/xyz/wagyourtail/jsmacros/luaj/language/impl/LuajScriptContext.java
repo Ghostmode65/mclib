@@ -23,7 +23,6 @@ public class LuajScriptContext extends BaseScriptContext<Lua> {
             try {
                 lua.close();
             } catch (Exception e) {
-                // Log errors here, could make some changes later to this 
                 e.printStackTrace();
             }
         }

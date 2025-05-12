@@ -23,24 +23,27 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         super(context, language);
     }
 
-    // Helper method to call Lua functions with proper stack handling
-    private LuaValue callFunction(LuaFunction fn, Lua lua, Object... args) {
-        // Push function arguments to stack
-        for (Object arg : args) {
-            lua.push(arg);
+    private LuaValue callFunction(LuaFunction fn, Object... args) {
+        Lua lua = ctx.getContext();
+        
+        try {
+            lua.checkStack(args.length + 2); 
+            ((LuaValue)fn).push(lua);
+            
+            for (Object arg : args) {
+                lua.push(arg, Lua.Conversion.SEMI);
+            }
+            
+            lua.pCall(args.length, 1);
+            
+            if (lua.getTop() > 0) {
+                return lua.get();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         
-        // Call the function with args.length arguments and 1 return value
-        int status = fn.invoke(lua, args.length);
-        
-        // Get the return value
-        LuaValue result = null;
-        if (lua.getTop() > 0) {
-            result = lua.value(-1);
-            lua.pop(1); // Pop the result from stack
-        }
-        
-        return result;
+        return null;
     }
 
     @Override
@@ -114,24 +117,21 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         @Override
         public void accept(T t) {
             internal_accept(() -> {
-                Lua lua = ctx.getContext();
-                callFunction(fn, lua, t);
+                callFunction(fn, t);
             }, await);
         }
 
         @Override
         public void accept(T t, U u) {
             internal_accept(() -> {
-                Lua lua = ctx.getContext();
-                callFunction(fn, lua, t, u);
+                callFunction(fn, t, u);
             }, await);
         }
 
         @Override
         public R apply(T t) {
             return internal_apply(() -> {
-                Lua lua = ctx.getContext();
-                LuaValue result = callFunction(fn, lua, t);
+                LuaValue result = callFunction(fn, t);
                 return (R) (result != null ? result.toJavaObject() : null);
             });
         }
@@ -139,8 +139,7 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         @Override
         public R apply(T t, U u) {
             return internal_apply(() -> {
-                Lua lua = ctx.getContext();
-                LuaValue result = callFunction(fn, lua, t, u);
+                LuaValue result = callFunction(fn, t, u);
                 return (R) (result != null ? result.toJavaObject() : null);
             });
         }
@@ -148,8 +147,7 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         @Override
         public boolean test(T t) {
             return internal_apply(() -> {
-                Lua lua = ctx.getContext();
-                LuaValue result = callFunction(fn, lua, t);
+                LuaValue result = callFunction(fn, t);
                 return result != null && 
                        result.type() == AbstractLua.LuaType.BOOLEAN && 
                        result.toBoolean();
@@ -159,8 +157,7 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         @Override
         public boolean test(T t, U u) {
             return internal_apply(() -> {
-                Lua lua = ctx.getContext();
-                LuaValue result = callFunction(fn, lua, t, u);
+                LuaValue result = callFunction(fn, t, u);
                 return result != null && 
                        result.type() == AbstractLua.LuaType.BOOLEAN && 
                        result.toBoolean();
@@ -170,16 +167,14 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         @Override
         public void run() {
             internal_accept(() -> {
-                Lua lua = ctx.getContext();
-                callFunction(fn, lua);
+                callFunction(fn);
             }, await);
         }
 
         @Override
         public int compare(T o1, T o2) {
             return internal_apply(() -> {
-                Lua lua = ctx.getContext();
-                LuaValue result = callFunction(fn, lua, o1, o2);
+                LuaValue result = callFunction(fn, o1, o2);
                 return result != null ? (int) result.toNumber() : 0;
             });
         }
@@ -187,8 +182,7 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
         @Override
         public R get() {
             return internal_apply(() -> {
-                Lua lua = ctx.getContext();
-                LuaValue result = callFunction(fn, lua);
+                LuaValue result = callFunction(fn);
                 return (R) (result != null ? result.toJavaObject() : null);
             });
         }

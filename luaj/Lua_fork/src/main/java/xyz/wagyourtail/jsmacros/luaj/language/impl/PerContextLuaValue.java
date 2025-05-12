@@ -48,16 +48,18 @@ public class PerContextLuaValue {
         return getForCurrentContext().toNumber();
     }
     
-   public LuaValue call(Object... args) {
-    LuaValue func = getForCurrentContext();
-    if (func != null) {
-        Lua lua = (Lua)getCurrentContext().getContext();
-        return func.call(lua, args);
+    public LuaValue call(Object... args) {
+        LuaValue func = getForCurrentContext();
+        if (func != null) {
+            Lua lua = (Lua)getCurrentContext().getContext();
+            LuaValue[] results = func.call(args);
+            if (results != null && results.length > 0) {
+                return results[0];
+            }
+        }
+        return null;
     }
-    return null;
-}
     
-    // Type checking utility methods
     public boolean isBoolean(LuaValue value) {
         return value != null && value.type() == AbstractLua.LuaType.BOOLEAN;
     }

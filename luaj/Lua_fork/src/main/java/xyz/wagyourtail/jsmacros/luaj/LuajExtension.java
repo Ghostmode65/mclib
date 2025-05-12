@@ -31,10 +31,9 @@ public class LuajExtension implements Extension {
         // pre-init Lua
         Thread t = new Thread(() -> {
             try {
-                // Create a Lua instance and execute a simple command to ensure initialization
                 try (Lua lua = new Lua54()) {
                     lua.openLibraries(); // Load standard libraries
-                    lua.eval("print(\"lua pre-loaded\")");
+                    lua.run("print(\"lua pre-loaded\")");
                 }
             } catch(Exception e) {
                 e.printStackTrace();
@@ -89,16 +88,13 @@ public class LuajExtension implements Extension {
 
     @Override
     public BaseWrappedException<?> wrapException(Throwable ex) {
-        // Handle LuaJava exceptions instead of LuaJ LuaError
         if (ex instanceof party.iroiro.luajava.LuaException) {
             party.iroiro.luajava.LuaException luaEx = (party.iroiro.luajava.LuaException) ex;
             String error = luaEx.getMessage();
             
-            // Get file and line information (this will need to be adapted to how LuaJava reports errors)
             File file = null; 
             int line = -1;
             
-            // Try to extract file and line information from error message
             String errorMsg = luaEx.getMessage();
             if (errorMsg != null && errorMsg.contains(":")) {
                 String[] parts = errorMsg.split(":", 3);
@@ -107,7 +103,7 @@ public class LuajExtension implements Extension {
                     try {
                         line = Integer.parseInt(parts[1].trim());
                     } catch (NumberFormatException e) {
-                        // Ignore if line number parsing fails
+
                     }
                 }
             }
