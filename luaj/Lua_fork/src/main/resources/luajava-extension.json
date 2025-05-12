@@ -1,0 +1,10 @@
+{
+  "name": "LuaJava",
+  "version": "4.0.2",
+  "description": "LuaJava implementation for JSMacros",
+  "dependencies": [
+    "party.iroiro.luajava:luajava:4.0.2",
+    "party.iroiro.luajava:lua54:4.0.2",
+    "party.iroiro.luajava:lua54-platform:4.0.2:natives-desktop"
+  ]
+}
