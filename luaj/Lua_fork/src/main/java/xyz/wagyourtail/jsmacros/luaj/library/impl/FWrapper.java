@@ -90,12 +90,19 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
 
         @Override
         public void accept(T t) {
-            internal_accept(() -> fn.call(t), await);
+            internal_accept(() -> {
+                Lua lua = ctx.getContext();
+                fn.call(lua, t instanceof LuaValue ? (LuaValue)t : null);
+            }, await);
         }
 
         @Override
         public void accept(T t, U u) {
-            internal_accept(() -> fn.call(t, u), await);
+            internal_accept(() -> {
+                Lua lua = ctx.getContext();
+                fn.call(lua, t instanceof LuaValue ? (LuaValue)t : null, 
+                            u instanceof LuaValue ? (LuaValue)u : null);
+            }, await);
         }
 
         @Override
@@ -132,7 +139,10 @@ public class FWrapper extends PerExecLanguageLibrary<party.iroiro.luajava.Lua, L
 
         @Override
         public void run() {
-            internal_accept(() -> fn.call(), await);
+            internal_accept(() -> {
+                Lua lua = ctx.getContext();
+                fn.call(lua);
+            }, await);
         }
 
         @Override

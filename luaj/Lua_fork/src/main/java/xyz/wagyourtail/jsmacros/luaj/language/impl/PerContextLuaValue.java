@@ -1,5 +1,7 @@
 package xyz.wagyourtail.jsmacros.luaj.language.impl;
 
+import party.iroiro.luajava.AbstractLua;
+import party.iroiro.luajava.Lua;
 import party.iroiro.luajava.value.LuaValue;
 import xyz.wagyourtail.jsmacros.core.Core;
 import xyz.wagyourtail.jsmacros.core.language.BaseScriptContext;
@@ -38,23 +40,53 @@ public class PerContextLuaValue {
     }
     
     public boolean asBoolean() {
-      return getForCurrentContext() != null && 
-       getForCurrentContext().isBoolean() && 
-       getForCurrentContext().toBoolean();
+        LuaValue value = getForCurrentContext();
+        return isBoolean(value) && value.toBoolean();
     }
     
     public double asNumber() {
         return getForCurrentContext().toNumber();
     }
     
-  public LuaValue call(Object... args) {
-    LuaValue func = getForCurrentContext();
-    if (func != null) {
-        Lua lua = getCurrentContext().getContext();
-        return func.call(lua, args);
+    public LuaValue call(Object... args) {
+        LuaValue func = getForCurrentContext();
+        if (func != null && isFunction(func)) {
+            BaseScriptContext<?> ctx = getCurrentContext();
+            if (ctx.getContext() instanceof Lua) {
+                Lua lua = (Lua) ctx.getContext();
+                return func.call(lua, args);
+            }
+        }
+        return null;
     }
-    return null;
-}
     
-    //Custom helper Functions
+    // Type checking utility methods
+    public boolean isBoolean(LuaValue value) {
+        return value != null && value.type() == AbstractLua.LuaType.BOOLEAN;
+    }
+    
+    public boolean isNumber(LuaValue value) {
+        return value != null && value.type() == AbstractLua.LuaType.NUMBER;
+    }
+    
+    public boolean isString(LuaValue value) {
+        return value != null && value.type() == AbstractLua.LuaType.STRING;
+    }
+    
+    public boolean isTable(LuaValue value) {
+        return value != null && value.type() == AbstractLua.LuaType.TABLE;
+    }
+    
+    public boolean isFunction(LuaValue value) {
+        return value != null && value.type() == AbstractLua.LuaType.FUNCTION;
+    }
+    
+    public boolean isNil(LuaValue value) {
+        return value == null || value.type() == AbstractLua.LuaType.NIL;
+    }
+    
+    public boolean isUserdata(LuaValue value) {
+        return value != null && (value.type() == AbstractLua.LuaType.USERDATA || 
+                                value.type() == AbstractLua.LuaType.LIGHTUSERDATA);
+    }
 }

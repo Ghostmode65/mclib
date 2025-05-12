@@ -59,10 +59,10 @@ public class LuajLanguageDefinition extends BaseLanguage<Lua, LuajScriptContext>
             lua.set("context", ctx);
             
             retrieveOnceLibs().forEach((name, lib) -> lua.set(name, lib));
-            
             retrievePerExecLibs(ctx.getCtx()).forEach((name, lib) -> lua.set(name, lib));
             
             String scriptPath = ctx.getCtx().getFile().getCanonicalPath();
+            // Replace loadFile and pcall with doFile
             lua.doFile(scriptPath);
         });
     }
@@ -74,7 +74,8 @@ public class LuajLanguageDefinition extends BaseLanguage<Lua, LuajScriptContext>
             lua.set("file", ctx.getCtx().getFile());
             lua.set("context", ctx);
             
-            lua.load(script);
+            // Replace load and pcall with eval or load+call
+            lua.load(script, "script");
             lua.call(0, 0);
         });
     }
