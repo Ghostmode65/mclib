@@ -1,0 +1,9 @@
+{
+    "Lua.diagnostics.globals": [
+        "JsMacros",
+        "Client",
+        "GlobalVars",
+        "Chat",
+        "FS"
+    ]
+}
