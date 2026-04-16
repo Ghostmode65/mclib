@@ -28,6 +28,5 @@ Install.addLoader = () => {
         Chat.actionbar("Added " + loaderText);
 };
 
-
 Install.addLoader()
 Install.deleteOldFiles()
