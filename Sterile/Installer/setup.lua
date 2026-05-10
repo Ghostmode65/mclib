@@ -90,10 +90,5 @@ configEdit("xyz.wagyourtail.jsmacros.luaj.config.LuajConfig" , "splitGlobalConte
 configEdit("xyz.wagyourtail.jsmacros.synapmc.config.SynapMcConfig" , "silent", true)
 
 JsMacros:getConfig():saveConfig()
-Client:waitTick()
-
-local success, result = pcall(function()
-    local script = GlobalContext:loadscript(Request:create(link):get():text(), "#1-load")
-    if script then script() end end)
-
-    if not success then Chat:actionbar("§cFailed to load into Fabric Refresher") end
+Client:waitTick(20)
+Chat:toast("&dSetup complete!", "Press your set keybind to load Fabric Refresher")
