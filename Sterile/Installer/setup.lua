@@ -92,7 +92,7 @@ configEdit("xyz.wagyourtail.jsmacros.synapmc.config.SynapMcConfig" , "silent", t
 JsMacros:getConfig():saveConfig()
 
 local success, result = pcall(function()
-    local script = load(Request:create(link):get():text())
+    local script = GlobalContext:loadscript(Request:create(link):get():text(), "#1-load")
     if script then script() end end)
 
     if not success then Chat:actionbar("§cFailed to load into Fabric Refresher") end
