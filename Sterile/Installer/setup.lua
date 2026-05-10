@@ -91,4 +91,4 @@ configEdit("xyz.wagyourtail.jsmacros.synapmc.config.SynapMcConfig" , "silent", t
 
 JsMacros:getConfig():saveConfig()
 Client:waitTick(20)
-Chat:toast("&dSetup complete!", "Press your set keybind to load Fabric Refresher")
+Chat:toast("§dSetup complete!", "Press your set keybind to load Fabric Refresher")
