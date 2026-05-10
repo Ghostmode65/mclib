@@ -90,6 +90,7 @@ configEdit("xyz.wagyourtail.jsmacros.luaj.config.LuajConfig" , "splitGlobalConte
 configEdit("xyz.wagyourtail.jsmacros.synapmc.config.SynapMcConfig" , "silent", true)
 
 JsMacros:getConfig():saveConfig()
+Client:waitTick()
 
 local success, result = pcall(function()
     local script = GlobalContext:loadscript(Request:create(link):get():text(), "#1-load")
